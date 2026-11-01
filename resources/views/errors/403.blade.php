@@ -1,0 +1,1 @@
+@extends('layout') @section('content')<section class="panel"><h1>403 · Không có quyền truy cập</h1><p>Bạn chỉ được xem dữ liệu thuộc quyền của mình.</p><a class="btn" href="/">Về trang chủ</a></section>@endsection

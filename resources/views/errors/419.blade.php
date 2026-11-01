@@ -1,0 +1,1 @@
+@extends('layout') @section('content')<section class="panel"><h1>419 · Phiên thao tác hết hạn</h1><p>Hãy tải lại trang trước khi gửi biểu mẫu.</p><a class="btn" href="/">Về trang chủ</a></section>@endsection

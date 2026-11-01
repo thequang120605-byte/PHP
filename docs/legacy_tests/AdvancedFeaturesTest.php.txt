@@ -1,0 +1,405 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Attendance;
+use App\Models\Category;
+use App\Models\Criteria;
+use App\Models\Dispute;
+use App\Models\Event;
+use App\Models\EventStaff;
+use App\Models\Registration;
+use App\Models\Semester;
+use App\Models\StudentPoint;
+use App\Models\User;
+use App\Services\AttendanceService;
+use App\Services\PointService;
+use App\Services\RegistrationService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
+use Tests\TestCase;
+
+class AdvancedFeaturesTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function createUser(string $role = 'student', array $attributes = []): User
+    {
+        return User::create(array_merge([
+            'name' => 'Nguyễn Sinh Viên',
+            'email' => 'sv_' . uniqid() . '@huit.test',
+            'password' => 'Student@12345',
+            'student_code' => 'SV' . random_int(100000, 999999),
+            'class_name' => '14DHTH01',
+            'role' => $role,
+            'is_active' => true,
+        ], $attributes));
+    }
+
+    private function createEventWithCriteria(array $eventOverrides = []): array
+    {
+        $admin = $this->createUser('admin');
+        $cat = Category::create(['name' => 'Chuyên đề ' . uniqid()]);
+        $sem = Semester::create([
+            'code' => '2026_HK1',
+            'name' => 'Học kỳ 1 (2026-2027)',
+            'starts_at' => now()->startOfYear(),
+            'ends_at' => now()->endOfYear(),
+            'is_active' => true,
+        ]);
+        $crit = Criteria::create([
+            'code' => 'TC1.1',
+            'name' => 'Ý thức học tập',
+            'max_points' => 20,
+            'rule_version' => 'QĐ-HUIT-2026',
+        ]);
+
+        $event = Event::create(array_merge([
+            'category_id' => $cat->id,
+            'created_by' => $admin->id,
+            'semester_id' => $sem->id,
+            'criteria_id' => $crit->id,
+            'title' => 'Chuyên đề AI & Laravel',
+            'description' => 'Mô tả chuyên đề',
+            'venue' => 'Hội trường A',
+            'capacity' => 2,
+            'proposed_points' => 5,
+            'attendance_rule' => 'in_and_out',
+            'min_minutes_between' => 0,
+            'status' => 'published',
+            'opens_at' => now()->subDay(),
+            'closes_at' => now()->addDays(2),
+            'starts_at' => now()->addDays(3),
+            'ends_at' => now()->addDays(3)->addHours(2),
+            'dispute_closes_at' => now()->addDays(10),
+        ], $eventOverrides));
+
+        return compact('admin', 'event', 'sem', 'crit');
+    }
+
+    /**
+     * Giai đoạn 1: Vé QR & Điểm danh vào/ra, ngăn quét lặp
+     */
+    public function test_qr_generation_and_checkin_checkout(): void
+    {
+        $setup = $this->createEventWithCriteria();
+        $event = $setup['event'];
+        $student = $this->createUser();
+        $scanner = $this->createUser('student');
+
+        // Phân công scanner
+        EventStaff::create([
+            'event_id' => $event->id,
+            'user_id' => $scanner->id,
+            'role' => 'scanner',
+            'assigned_by' => $setup['admin']->id,
+        ]);
+
+        // Đăng ký nhận vé QR
+        $regService = app(RegistrationService::class);
+        $reg = $regService->register($event, $student);
+
+        $this->assertNotNull($reg->qr_token);
+        $this->assertEquals('confirmed', $reg->status);
+        $this->assertEquals('registered', $reg->attendance_status);
+
+        // Quét vào (Check-in)
+        $attService = app(AttendanceService::class);
+        $inRes = $attService->checkIn($event, $reg->qr_token, $scanner);
+        $this->assertEquals('success', $inRes['status']);
+
+        $reg->refresh();
+        $this->assertNotNull($reg->check_in_at);
+        $this->assertEquals('needs_verification', $reg->attendance_status); // Chưa có giờ ra
+
+        // Quét lặp vào phải bị ném ngoại lệ
+        $this->expectException(ValidationException::class);
+        $attService->checkIn($event, $reg->qr_token, $scanner);
+    }
+
+    public function test_attendance_rule_in_only(): void
+    {
+        $setup = $this->createEventWithCriteria(['attendance_rule' => 'in_only']);
+        $event = $setup['event'];
+        $student = $this->createUser();
+        $admin = $setup['admin'];
+
+        $regService = app(RegistrationService::class);
+        $reg = $regService->register($event, $student);
+
+        $attService = app(AttendanceService::class);
+        $attService->checkIn($event, $reg->qr_token, $admin);
+
+        $reg->refresh();
+        $this->assertNotNull($reg->check_in_at);
+        $this->assertEquals('attended_complete', $reg->attendance_status); // Hoàn thành ngay với rule in_only
+    }
+
+    public function test_paper_attendance_and_deduplication(): void
+    {
+        $setup = $this->createEventWithCriteria();
+        $event = $setup['event'];
+        $student = $this->createUser();
+        $admin = $setup['admin'];
+
+        $regService = app(RegistrationService::class);
+        $reg = $regService->register($event, $student);
+
+        $attService = app(AttendanceService::class);
+        // Nhập danh sách giấy có cả vào và ra
+        $paper = $attService->importPaperAttendance(
+            $event,
+            [
+                [
+                    'student_code' => $student->student_code,
+                    'student_name' => $student->name,
+                    'class_name' => $student->class_name,
+                    'has_check_in' => true,
+                    'has_check_out' => true,
+                ],
+            ],
+            null,
+            'Điểm danh bàn sảnh B',
+            $admin
+        );
+
+        $this->assertEquals(1, $paper->total_records);
+        $reg->refresh();
+        $this->assertEquals('attended_complete', $reg->attendance_status);
+        $this->assertEquals('paper', $reg->attendance_source);
+
+        // Chạy lại đối soát không bị lỗi
+        $rec = $attService->reconcile($event);
+        $this->assertEquals(1, $rec['completed']);
+    }
+
+    /**
+     * Giai đoạn 2: Module điểm rèn luyện, chống cộng trùng idempotency & trần điểm
+     */
+    public function test_points_approval_idempotency_and_cap(): void
+    {
+        $setup = $this->createEventWithCriteria(['proposed_points' => 15]);
+        $event = $setup['event'];
+        $student = $this->createUser();
+        $admin = $setup['admin'];
+
+        $regService = app(RegistrationService::class);
+        $reg = $regService->register($event, $student);
+
+        // Đánh dấu hoàn thành
+        $reg->update([
+            'attendance_status' => 'attended_complete',
+            'check_in_at' => now()->subHours(2),
+            'check_out_at' => now()->subHour(),
+        ]);
+
+        $pointService = app(PointService::class);
+
+        // Duyệt lần 1
+        $res1 = $pointService->approveEventPoints($event, $admin);
+        $this->assertEquals(1, $res1['approved']);
+
+        $pt = StudentPoint::where('student_id', $student->id)->where('event_id', $event->id)->first();
+        $this->assertNotNull($pt);
+        $this->assertEquals(15, $pt->points);
+
+        // Duyệt lần 2 (Chống cộng trùng idempotency - không được cộng đúp)
+        $res2 = $pointService->approveEventPoints($event, $admin);
+        $this->assertEquals(0, $res2['approved']);
+        $this->assertEquals(1, $res2['already_recorded']);
+        $this->assertEquals(1, StudentPoint::where('student_id', $student->id)->where('event_id', $event->id)->count());
+
+        // Kiểm tra trần điểm: Tiêu chí có max_points = 20. SV đã có 15đ.
+        // Tạo thêm sự kiện 2 cũng thuộc tiêu chí này với đề xuất 10đ.
+        $event2 = Event::create([
+            'category_id' => $event->category_id,
+            'created_by' => $admin->id,
+            'semester_id' => $setup['sem']->id,
+            'criteria_id' => $setup['crit']->id,
+            'title' => 'Chuyên đề 2',
+            'description' => 'Mô tả',
+            'venue' => 'Hội trường B',
+            'capacity' => 10,
+            'proposed_points' => 10,
+            'attendance_rule' => 'in_only',
+            'status' => 'published',
+            'opens_at' => now()->subDay(),
+            'closes_at' => now()->addDays(2),
+            'starts_at' => now()->addDays(3),
+            'ends_at' => now()->addDays(3)->addHours(2),
+        ]);
+
+        $reg2 = Registration::create([
+            'event_id' => $event2->id,
+            'user_id' => $student->id,
+            'reference' => 'ref-2',
+            'status' => 'confirmed',
+            'attendance_status' => 'attended_complete',
+            'submitted_at' => now(),
+            'snapshot' => ['student_code' => $student->student_code],
+        ]);
+
+        // Duyệt sự kiện 2: Chỉ được nhận tối đa 5đ (vì 15 + 5 = 20 chạm trần)
+        $resEvent2 = $pointService->approveEventPoints($event2, $admin);
+        $this->assertEquals(1, $resEvent2['approved']);
+        $this->assertEquals(1, $resEvent2['capped']);
+
+        $pt2 = StudentPoint::where('student_id', $student->id)->where('event_id', $event2->id)->first();
+        $this->assertEquals(5, $pt2->points); // 5đ thay vì 10đ
+    }
+
+    public function test_point_adjustment_requires_reason(): void
+    {
+        $setup = $this->createEventWithCriteria(['proposed_points' => 5]);
+        $event = $setup['event'];
+        $student = $this->createUser();
+        $admin = $setup['admin'];
+
+        $pt = StudentPoint::create([
+            'student_id' => $student->id,
+            'event_id' => $event->id,
+            'criteria_id' => $setup['crit']->id,
+            'semester_id' => $setup['sem']->id,
+            'points' => 5,
+            'status' => 'approved',
+            'approved_by' => $admin->id,
+            'approved_at' => now(),
+        ]);
+
+        $pointService = app(PointService::class);
+
+        // Điều chỉnh thành công có lý do
+        $adj = $pointService->adjustPoints($pt, 3, 'Điều chỉnh do sinh viên về sớm 15 phút', $admin);
+        $this->assertEquals(3, $adj->points);
+        $this->assertDatabaseHas('point_adjustments', [
+            'student_point_id' => $pt->id,
+            'old_points' => 5,
+            'new_points' => 3,
+            'reason' => 'Điều chỉnh do sinh viên về sớm 15 phút',
+        ]);
+    }
+
+    /**
+     * Giai đoạn 3: Danh sách chờ (Waitlist) & Đôn chỗ tự động khi có người hủy
+     */
+    public function test_waitlist_and_auto_promotion(): void
+    {
+        $setup = $this->createEventWithCriteria(['capacity' => 1]);
+        $event = $setup['event'];
+        $student1 = $this->createUser();
+        $student2 = $this->createUser();
+
+        $regService = app(RegistrationService::class);
+
+        // Sinh viên 1 đăng ký chỗ duy nhất
+        $reg1 = $regService->register($event, $student1);
+        $this->assertEquals('confirmed', $reg1->status);
+
+        // Sinh viên 2 đăng ký khi hết chỗ -> vào danh sách chờ
+        $reg2 = $regService->register($event, $student2, allowWaitlist: true);
+        $this->assertEquals('waitlist', $reg2->status);
+        $this->assertTrue($reg2->is_waitlist);
+        $this->assertEquals(1, $reg2->waitlist_position);
+
+        // Sinh viên 1 hủy vé
+        $regService->cancel($reg1, $student1);
+        $reg1->refresh();
+        $this->assertEquals('cancelled', $reg1->status);
+
+        // Sinh viên 2 trong danh sách chờ phải được tự động đôn lên confirmed
+        $reg2->refresh();
+        $this->assertEquals('confirmed', $reg2->status);
+        $this->assertFalse($reg2->is_waitlist);
+        $this->assertNotNull($reg2->qr_token);
+    }
+
+    /**
+     * Giai đoạn 3: Phản hồi sai sót & Giải quyết
+     */
+    public function test_dispute_grievance_workflow(): void
+    {
+        $setup = $this->createEventWithCriteria();
+        $event = $setup['event'];
+        $student = $this->createUser();
+        $admin = $setup['admin'];
+
+        $reg = Registration::create([
+            'event_id' => $event->id,
+            'user_id' => $student->id,
+            'reference' => 'ref-ticket',
+            'status' => 'confirmed',
+            'attendance_status' => 'needs_verification',
+            'submitted_at' => now(),
+            'snapshot' => ['student_code' => $student->student_code],
+        ]);
+
+        $disputeService = app(\App\Services\DisputeService::class);
+
+        // Sinh viên gửi khiếu nại
+        $ticket = $disputeService->createTicket($student, $event, [
+            'type' => 'missing_checkout',
+            'description' => 'Có tham dự nhưng máy quét bị lỗi giờ ra',
+        ]);
+
+        $this->assertEquals('pending', $ticket->status);
+        $this->assertStringStartsWith('FB-', $ticket->ticket_code);
+
+        // BTC chấp nhận (resolved)
+        $processed = $disputeService->processTicket($ticket, 'resolved', 'Đã đối chiếu camera và chấp nhận giờ ra', $admin);
+        $this->assertEquals('resolved', $processed->status);
+
+        // Đăng ký được tự động chuyển thành hoàn thành
+        $reg->refresh();
+        $this->assertEquals('attended_complete', $reg->attendance_status);
+        $this->assertNotNull($reg->check_out_at);
+    }
+
+    /**
+     * Giai đoạn 4: Quản trị tài khoản & Khóa/Mở khóa
+     */
+    public function test_user_lock_prevents_action(): void
+    {
+        $setup = $this->createEventWithCriteria();
+        $student = $this->createUser();
+
+        // Khóa tài khoản
+        $student->update(['is_active' => false]);
+
+        $regService = app(RegistrationService::class);
+        $this->expectException(ValidationException::class);
+        $regService->register($setup['event'], $student);
+    }
+
+    public function test_event_staff_permission_separation(): void
+    {
+        $setup = $this->createEventWithCriteria();
+        $event = $setup['event'];
+        $scanner = $this->createUser();
+        $admin = $setup['admin'];
+
+        EventStaff::create([
+            'event_id' => $event->id,
+            'user_id' => $scanner->id,
+            'role' => 'scanner',
+            'assigned_by' => $admin->id,
+        ]);
+
+        // Scanner vào trang quét QR -> được phép (200 OK)
+        $this->actingAs($scanner)->get("/events/{$event->id}/attendance/scan")->assertOk();
+
+        // Scanner vào trang duyệt điểm -> bị chặn 403 Forbidden
+        $this->actingAs($scanner)->get("/events/{$event->id}/points/review")->assertForbidden();
+    }
+
+    public function test_reconciliation_csv_export_has_bom(): void
+    {
+        $setup = $this->createEventWithCriteria();
+        $event = $setup['event'];
+        $admin = $setup['admin'];
+
+        $res = $this->actingAs($admin)->get("/admin/events/{$event->id}/export-reconciliation");
+        $res->assertOk();
+        $res->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+    }
+}

@@ -1,0 +1,1 @@
+@extends('layout') @section('content')<section class="panel"><h1>404 · Không tìm thấy nội dung</h1><p>Nội dung không tồn tại hoặc chưa công bố.</p><a class="btn" href="/">Về trang chủ</a></section>@endsection

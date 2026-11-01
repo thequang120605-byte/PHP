@@ -1,0 +1,14 @@
+{
+  "requests": 120,
+  "parallel_workers": 20,
+  "distinct_students": 100,
+  "duplicate_retries": 20,
+  "failures": 0,
+  "completion_rows": 100,
+  "concurrent_point_events": 2,
+  "point_total": 5,
+  "point_cap": 5,
+  "wall_seconds": 4.66,
+  "service_process_p95_seconds": 1.004,
+  "scope": "parallel PHP service processes, includes PHP bootstrap; not HTTP load or 40000-user benchmark"
+}
