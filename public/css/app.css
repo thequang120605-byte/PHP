@@ -1503,4 +1503,331 @@ select:focus-visible {
   .detail { grid-template-columns: 1fr; }
   .panel.auth { padding: 28px 20px; margin: 16px auto; }
   dl { grid-template-columns: 1fr; gap: 4px; }
+  .category-pills { padding-bottom: 10px; }
+  .ticket-perforation { margin: 0 -20px; }
+}
+
+/* ==========================================================================
+   CATEGORY PILLS & QUICK FILTERS
+   ========================================================================== */
+.category-pills {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 6px 2px 18px;
+  margin-bottom: 8px;
+  scrollbar-width: thin;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 30px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #334155;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+.pill:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+.pill.active {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+  color: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* ==========================================================================
+   VIEW SWITCHER (Dạng thẻ & Dạng Lịch)
+   ========================================================================== */
+.view-switcher {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+.btn-toggle-view {
+  background: transparent;
+  border: 0;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-toggle-view:hover {
+  color: #1e293b;
+}
+.btn-toggle-view.active {
+  background: #ffffff;
+  color: #1d4ed8;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* ==========================================================================
+   ENHANCED EVENT CARD (HD Poster, Overlay, Countdown, Progress)
+   ========================================================================== */
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.card:hover .cover img {
+  transform: scale(1.05);
+}
+.cover-gradient-mask {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.15) 0%, rgba(15, 23, 42, 0.75) 100%);
+  pointer-events: none;
+}
+.cover-category {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  padding: 3px 10px;
+  border-radius: 8px;
+}
+.countdown-tag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 2;
+}
+.capacity-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 14px 0 6px;
+}
+.capacity-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ==========================================================================
+   VIP E-TICKET PASS (Apple Wallet / Boarding Pass Style)
+   ========================================================================== */
+.ticket-pass {
+  background: #ffffff;
+  border-radius: 22px;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 24px;
+}
+.ticket-pass-header {
+  background: linear-gradient(135deg, #091b35 0%, #0f3460 50%, #1e3a8a 100%);
+  color: #ffffff;
+  padding: 26px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+.ticket-pass-header::after {
+  content: '';
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 110px;
+  height: 110px;
+  background-image: url('/images/logo-huit.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.12;
+  filter: brightness(0) invert(1);
+  pointer-events: none;
+}
+.ticket-pass-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+.ticket-pass-body {
+  padding: 28px 30px;
+}
+.ticket-perforation {
+  position: relative;
+  height: 28px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ticket-notch-left, .ticket-notch-right {
+  width: 26px;
+  height: 26px;
+  background: #f8fafc; /* Nền của shell */
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+}
+.ticket-notch-left {
+  margin-left: -13px;
+  clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%);
+}
+.ticket-notch-right {
+  margin-right: -13px;
+  clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+}
+.ticket-cut-line {
+  flex: 1;
+  border-bottom: 2px dashed #cbd5e1;
+  margin: 0 12px;
+}
+.ticket-barcode-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   GAMIFICATION: PROGRESS BAR & BADGES
+   ========================================================================== */
+.gamification-banner {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f2b5c 100%);
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 26px 30px;
+  margin-bottom: 28px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.gamification-banner::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+.badge-pill.gold {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fef3c7;
+}
+
+/* ==========================================================================
+   CALENDAR VIEW (Lịch hoạt động theo tháng)
+   ========================================================================== */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  background: #ffffff;
+  padding: 22px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.05);
+  margin-bottom: 28px;
+}
+.calendar-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  padding: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.calendar-day {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  min-height: 90px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+.calendar-day:hover {
+  background: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+.calendar-day.today {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+.calendar-day-number {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 4px;
+}
+.calendar-event-dot {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: #dbeafe;
+  color: #1e40af;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  display: block;
+}
+.calendar-event-dot:hover {
+  background: #2563eb;
+  color: #ffffff;
 }

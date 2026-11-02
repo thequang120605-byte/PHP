@@ -22,6 +22,36 @@ class Event extends Model
         ];
     }
 
+    public function getPosterUrlAttribute(): string
+    {
+        if ($this->poster_path) {
+            return asset('storage/'.$this->poster_path);
+        }
+
+        $categoryName = mb_strtolower($this->category?->name ?? '');
+        if (str_contains($categoryName, 'học thuật') || str_contains($categoryName, 'ai') || str_contains($categoryName, 'công nghệ')) {
+            return 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80';
+        }
+        if (str_contains($categoryName, 'kỹ năng') || str_contains($categoryName, 'workshop')) {
+            return 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80';
+        }
+        if (str_contains($categoryName, 'tình nguyện') || str_contains($categoryName, 'cộng đồng')) {
+            return 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=800&q=80';
+        }
+        if (str_contains($categoryName, 'thể thao') || str_contains($categoryName, 'hội thao') || str_contains($categoryName, 'văn hóa')) {
+            return 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=800&q=80';
+        }
+
+        $fallbacks = [
+            'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80',
+        ];
+
+        return $fallbacks[$this->id % count($fallbacks)];
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);

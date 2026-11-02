@@ -97,6 +97,24 @@
     <span class="muted">Thời gian hiển thị theo giờ Việt Nam (UTC+7)</span>
 </div>
 
+<!-- Hàng Thẻ Lọc Nhanh (Category Quick Pills) -->
+<div class="category-pills">
+    <a href="/" class="pill {{ !request('category') ? 'active' : '' }}">
+        🌟 Tất cả hoạt động
+    </a>
+    @foreach($categories as $c)
+        <a href="/?category={{ $c->id }}" class="pill {{ request('category') == $c->id ? 'active' : '' }}">
+            @if(str_contains(mb_strtolower($c->name), 'học thuật') || str_contains(mb_strtolower($c->name), 'ai')) 💻
+            @elseif(str_contains(mb_strtolower($c->name), 'kỹ năng') || str_contains(mb_strtolower($c->name), 'khởi nghiệp')) 🎤
+            @elseif(str_contains(mb_strtolower($c->name), 'tình nguyện')) 🤝
+            @elseif(str_contains(mb_strtolower($c->name), 'thể thao') || str_contains(mb_strtolower($c->name), 'văn hóa')) ⚽
+            @else 📌
+            @endif
+            {{ $c->name }}
+        </a>
+    @endforeach
+</div>
+
 <form class="filters-bar" method="GET">
     <div class="search-input-wrap">
         <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -129,21 +147,39 @@
     <a href="/" class="btn-filter-reset">Đặt lại</a>
 </form>
 
-<div class="grid">
+<!-- Bộ Chuyển Đổi Chế Độ Xem (View Switcher: Dạng thẻ vs Dạng Lịch) -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 12px;">
+    <span class="muted" style="font-size: 13.5px;">Hiển thị <strong>{{ $events->count() }}</strong> hoạt động phù hợp</span>
+    
+    <div class="view-switcher">
+        <button type="button" class="btn-toggle-view active" id="btn-view-grid" onclick="switchView('grid')">
+            ⊞ Dạng thẻ lưới
+        </button>
+        <button type="button" class="btn-toggle-view" id="btn-view-calendar" onclick="switchView('calendar')">
+            📅 Lịch hoạt động
+        </button>
+    </div>
+</div>
+
+<!-- CHẾ ĐỘ 1: DẠNG LƯỚI THẺ (GRID VIEW) -->
+<div class="grid" id="grid-view">
     @forelse($events as $e)
         <article class="card">
             <a class="cover c{{ $e->category_id % 4 }}" href="/events/{{ $e->id }}">
-                @if($e->poster_path)
-                    <img src="{{ asset('storage/'.$e->poster_path) }}" alt="Poster sự kiện">
-                @else
-                    <span class="symbol">{{ ['✦','◈','◎','✳'][$e->category_id % 4] }}</span>
-                    <b>{{ $e->category->name }}</b>
-                @endif
+                <img src="{{ $e->poster_url }}" alt="Poster {{ $e->title }}" loading="lazy" onerror="this.style.opacity='0'">
+                <div class="cover-gradient-mask"></div>
+                <b class="cover-category">{{ $e->category->name }}</b>
 
                 <div class="date-pill">
                     <strong>{{ $e->starts_at->timezone('Asia/Ho_Chi_Minh')->format('d') }}</strong>
                     THÁNG {{ $e->starts_at->timezone('Asia/Ho_Chi_Minh')->format('m') }}
                 </div>
+
+                @if($e->isOpen() && now()->lt($e->closes_at))
+                    <div class="countdown-tag" title="Hạn đóng đăng ký">
+                        ⏱️ Đóng sau {{ $e->closes_at->diffForHumans(now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE) }}
+                    </div>
+                @endif
             </a>
 
             <div class="card-body">
@@ -162,8 +198,16 @@
                     <span>Địa điểm: {{ $e->venue }}</span>
                 </div>
 
+                <!-- Thanh tiến trình sức chứa chỗ -->
+                @php
+                    $pct = min(100, round(($e->confirmed_count / max(1, $e->capacity)) * 100));
+                @endphp
+                <div class="capacity-bar-wrap" title="Đã kín {{ $pct }}% số lượng chỗ">
+                    <div class="capacity-bar" style="width: {{ $pct }}%; background: {{ $pct >= 90 ? '#dc2626' : ($pct >= 70 ? '#f59e0b' : '#10b981') }};"></div>
+                </div>
+
                 <div class="card-foot">
-                    <span class="capacity-tag">{{ $e->confirmed_count }}/{{ $e->capacity }} chỗ</span>
+                    <span class="capacity-tag">{{ $e->confirmed_count }}/{{ $e->capacity }} chỗ ({{ $pct }}%)</span>
                     <a class="detail-link" href="/events/{{ $e->id }}">
                         Chi tiết ↗
                     </a>
@@ -198,7 +242,79 @@
     @endforelse
 </div>
 
+<!-- CHẾ ĐỘ 2: DẠNG LỊCH HOẠT ĐỘNG (CALENDAR VIEW) -->
+<div id="calendar-view" style="display: none;">
+    <div style="background: #ffffff; border-radius: 20px; border: 1.5px solid #e2e8f0; padding: 24px; box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.05); margin-bottom: 28px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; color: #0f172a; font-size: 18px;">
+                📅 Lịch diễn ra các hoạt động phong trào & chuyên đề
+            </h3>
+            <span class="badge info">Tháng {{ now()->format('m/Y') }}</span>
+        </div>
+
+        <div class="calendar-grid" style="margin-bottom: 0; padding: 0; border: 0; box-shadow: none;">
+            <div class="calendar-weekday">T2</div>
+            <div class="calendar-weekday">T3</div>
+            <div class="calendar-weekday">T4</div>
+            <div class="calendar-weekday">T5</div>
+            <div class="calendar-weekday">T6</div>
+            <div class="calendar-weekday" style="color: #2563eb;">T7</div>
+            <div class="calendar-weekday" style="color: #dc2626;">CN</div>
+
+            @php
+                $currentMonth = now()->month;
+                $daysInMonth = now()->daysInMonth;
+                $firstDayOfWeek = now()->startOfMonth()->dayOfWeekIso; // 1 (Mon) to 7 (Sun)
+            @endphp
+
+            @for($blank = 1; $blank < $firstDayOfWeek; $blank++)
+                <div class="calendar-day" style="opacity: 0.35; background: transparent;"></div>
+            @endfor
+
+            @for($day = 1; $day <= $daysInMonth; $day++)
+                @php
+                    $isToday = ($day == now()->day);
+                    $eventsOnDay = $events->filter(function($item) use ($day, $currentMonth) {
+                        return $item->starts_at->day == $day && $item->starts_at->month == $currentMonth;
+                    });
+                @endphp
+                <div class="calendar-day {{ $isToday ? 'today' : '' }}">
+                    <span class="calendar-day-number" style="{{ $isToday ? 'color: #2563eb; font-weight: 800;' : '' }}">
+                        {{ $day }} {!! $isToday ? '<small style="font-size: 10px;">(Hôm nay)</small>' : '' !!}
+                    </span>
+                    @foreach($eventsOnDay as $item)
+                        <a class="calendar-event-dot" href="/events/{{ $item->id }}" title="{{ $item->title }} ({{ $item->starts_at->format('H:i') }})">
+                            {{ $item->starts_at->format('H:i') }} · {{ Str::limit($item->title, 16) }}
+                        </a>
+                    @endforeach
+                </div>
+            @endfor
+        </div>
+    </div>
+</div>
+
 <div class="pagination">
     {{ $events->links('pagination::simple-default') }}
 </div>
+
+<script>
+function switchView(mode) {
+    const gridView = document.getElementById('grid-view');
+    const calendarView = document.getElementById('calendar-view');
+    const btnGrid = document.getElementById('btn-view-grid');
+    const btnCalendar = document.getElementById('btn-view-calendar');
+
+    if (mode === 'calendar') {
+        gridView.style.display = 'none';
+        calendarView.style.display = 'block';
+        btnGrid.classList.remove('active');
+        btnCalendar.classList.add('active');
+    } else {
+        gridView.style.display = 'grid';
+        calendarView.style.display = 'none';
+        btnGrid.classList.add('active');
+        btnCalendar.classList.remove('active');
+    }
+}
+</script>
 @endsection

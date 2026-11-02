@@ -9,6 +9,43 @@
     <p>Tổng hợp điểm tích lũy từ các hoạt động, sự kiện và chuyên đề đã được xác nhận tham dự.</p>
 </div>
 
+@php
+    $grandTotal = collect($transcript)->sum('total_points');
+    $targetPoints = 30;
+    $progressPct = min(100, round(($grandTotal / $targetPoints) * 100));
+@endphp
+
+<!-- Banner Thành tích & Gamification Huy hiệu Sinh viên -->
+<div class="gamification-banner">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; position: relative; z-index: 2;">
+        <div>
+            <small style="font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1.5px; text-transform: uppercase;">THÀNH TÍCH PHONG TRÀO CỦA BẠN</small>
+            <h2 style="margin: 4px 0 0; color: #ffffff; font-size: 22px;">
+                Tổng điểm tích lũy: <span style="color: #4ade80; font-weight: 800;">{{ $grandTotal }} điểm</span>
+            </h2>
+        </div>
+        <div>
+            @if($grandTotal >= 25)
+                <span class="badge-pill gold">⭐ Sinh viên 5 Tốt Tiềm năng</span>
+            @elseif($grandTotal >= 15)
+                <span class="badge-pill gold">🥇 Thủ lĩnh Phong trào</span>
+            @elseif($grandTotal >= 5)
+                <span class="badge-pill">🥈 Chiến binh Tích cực</span>
+            @else
+                <span class="badge-pill">🥉 Tân binh Năng nổ</span>
+            @endif
+        </div>
+    </div>
+
+    <div style="background: rgba(255,255,255,0.15); height: 10px; border-radius: 6px; overflow: hidden; margin-bottom: 8px; position: relative; z-index: 2;">
+        <div style="background: linear-gradient(90deg, #38bdf8, #4ade80); height: 100%; width: {{ $progressPct }}%; border-radius: 6px; transition: width 0.5s ease;"></div>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; position: relative; z-index: 2;">
+        <span>Tiến độ phong trào: <strong>{{ $grandTotal }}/{{ $targetPoints }} điểm</strong> ({{ $progressPct }}%)</span>
+        <span>Đánh giá sơ bộ: <strong>{{ $grandTotal >= 20 ? 'Xuất sắc ⭐' : ($grandTotal >= 15 ? 'Khá - Tốt' : 'Cần tích cực hơn') }}</strong></span>
+    </div>
+</div>
+
 <div class="filters">
     <form method="GET" action="/my-points" style="display: flex; gap: 10px; align-items: center; width: 100%;">
         <label style="margin: 0; min-width: 250px;">

@@ -21,9 +21,7 @@
 
 <div class="detail">
     <section class="panel">
-        @if($e->poster_path)
-            <img class="poster" src="{{ asset('storage/'.$e->poster_path) }}" alt="Poster">
-        @endif
+        <img class="poster" src="{{ $e->poster_url }}" alt="Poster {{ $e->title }}" onerror="this.style.display='none'">
 
         <h2>Về hoạt động</h2>
         <p class="prose">{{ $e->description }}</p>
