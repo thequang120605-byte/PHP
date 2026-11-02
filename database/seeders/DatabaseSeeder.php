@@ -152,7 +152,7 @@ class DatabaseSeeder extends Seeder
                 'title' => '[ĐÃ KẾT THÚC DEMO] Tọa đàm Nghiên cứu Khoa học và Công bố Quốc tế',
                 'category_id' => $catHocThuat->id,
                 'criteria_id' => $critHocThuat->id,
-                'venue' => EventVenue::Hall->value,
+                'venue' => EventVenue::Online->value,
                 'capacity' => 120,
                 'proposed_points' => 4,
                 'description' => "Hoạt động demo đã kết thúc để kiểm thử quy trình: Mở QR điểm danh cuối sự kiện -> Đối soát tham dự -> Duyệt điểm rèn luyện -> Xử lý khiếu nại sai sót.",

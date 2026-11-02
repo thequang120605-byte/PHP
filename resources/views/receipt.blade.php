@@ -99,6 +99,8 @@
             </div>
         </div>
 
+        <p class="notice" style="margin-bottom: 20px;">Phiếu xác nhận đăng ký, chưa xác nhận tham dự và chưa cộng điểm.</p>
+
         <!-- Các nút thao tác vé -->
         <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
             <button type="button" class="btn white" onclick="window.print()" style="border: 1px solid #cbd5e1;">

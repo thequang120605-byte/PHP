@@ -17,6 +17,40 @@
         </div>
     </a>
     
+    @auth
+        <!-- Mini Profile Pill -->
+        <div class="sidebar-user-pill">
+            <div class="sidebar-user-avatar">{{ mb_strtoupper(mb_substr(auth()->user()->name, 0, 1)) }}</div>
+            <div class="sidebar-user-info">
+                <span class="sidebar-user-name">{{ auth()->user()->name }}</span>
+                <div class="sidebar-user-role">
+                    @if(auth()->user()->role === 'admin')
+                        <span class="badge-tag badge-tag--admin">Ban Quản trị</span>
+                    @else
+                        <span class="badge-tag">{{ auth()->user()->student_code ?? 'Sinh viên' }}</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endauth
+
+    @guest
+        <!-- Thẻ thông báo & Đăng nhập nhanh cho khách -->
+        <div class="sidebar-guest-card">
+            <div class="sidebar-guest-badge">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
+                </svg>
+                Cổng sinh viên HUIT
+            </div>
+            <p class="sidebar-guest-text">Đăng nhập để giữ vé điện tử & ghi nhận điểm rèn luyện chính thức.</p>
+            <div class="sidebar-guest-btns">
+                <a href="/login" class="btn-sidebar btn-sidebar--primary">Đăng nhập</a>
+                <a href="/register" class="btn-sidebar btn-sidebar--outline">Đăng ký</a>
+            </div>
+        </div>
+    @endguest
+
     <small class="nav-label">KHÔNG GIAN SINH VIÊN</small>
     <nav>
         <a href="/" class="{{ request()->is('/') ? 'active' : '' }}">
@@ -99,6 +133,73 @@
             @endif
         @endauth
     </nav>
+
+    <!-- Chuyên đề sự kiện nhanh -->
+    @if(isset($sidebarCategories) && $sidebarCategories->isNotEmpty())
+        <small class="nav-label">CHUYÊN ĐỀ SỰ KIỆN</small>
+        <div class="sidebar-cat-list">
+            @foreach($sidebarCategories as $cat)
+                <a href="/?category={{ $cat->id }}" class="sidebar-cat-link {{ request('category') == $cat->id ? 'active' : '' }}">
+                    <span class="sidebar-cat-left">
+                        <span class="sidebar-cat-bullet"></span>
+                        <span class="sidebar-cat-title">{{ $cat->name }}</span>
+                    </span>
+                    <span class="sidebar-cat-badge">{{ $cat->events_count }}</span>
+                </a>
+            @endforeach
+        </div>
+    @endif
+
+    <!-- Mini Stepper: Quy trình 3 bước khép kín -->
+    <div class="sidebar-workflow">
+        <div class="workflow-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 13px; height: 13px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
+            </svg>
+            QUY TRÌNH THAM GIA
+        </div>
+        <div class="workflow-steps">
+            <div class="workflow-step">
+                <span class="step-num">1</span>
+                <div class="step-content">
+                    <strong>Đăng ký giữ chỗ</strong>
+                    <span>Nhận mã vé QR điện tử</span>
+                </div>
+            </div>
+            <div class="workflow-step">
+                <span class="step-num">2</span>
+                <div class="step-content">
+                    <strong>Quét QR cuối giờ</strong>
+                    <span>Xác nhận hiện diện thực tế</span>
+                </div>
+            </div>
+            <div class="workflow-step">
+                <span class="step-num">3</span>
+                <div class="step-content">
+                    <strong>Tích lũy Điểm RL</strong>
+                    <span>Duyệt & ghi nhận tự động</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hỗ trợ sinh viên & Đoàn Hội -->
+    <div class="sidebar-support-box">
+        <div class="support-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.516 0c.85.493 1.508 1.333 1.508 2.316V18" />
+            </svg>
+            HỖ TRỢ ĐOÀN - HỘI
+        </div>
+        <div class="support-row">
+            <span class="support-label">Địa điểm:</span>
+            <span class="support-val">VP Đoàn Tòa B</span>
+        </div>
+        <div class="support-row">
+            <span class="support-label">Hotline:</span>
+            <a href="tel:02838161673" class="support-val support-link">028 3816 1673</a>
+        </div>
+    </div>
 
     <!-- Glassmorphism Card -->
     <div class="side-note">
