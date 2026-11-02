@@ -7,7 +7,9 @@ use App\Http\Controllers\DisputeController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventStaffController;
 use App\Http\Controllers\ImportExportController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PointController;
+use App\Http\Controllers\StaffWorkspaceController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +60,14 @@ Route::middleware('active')->group(function () {
         Route::get('/events/{event}/points/review', [PointController::class, 'showReviewPage']);
         Route::post('/events/{event}/points/approve', [PointController::class, 'approvePoints']);
         Route::post('/points/{point}/adjust', [PointController::class, 'adjustPoint']);
+
+        // Không gian làm việc BTC & Chốt kết quả sự kiện
+        Route::get('/staff/events', [StaffWorkspaceController::class, 'index']);
+        Route::post('/events/{event}/finalize', [StaffWorkspaceController::class, 'finalize']);
+
+        // Trung tâm thông báo nghiệp vụ
+        Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     });
 
     // Quản trị dành cho Admin

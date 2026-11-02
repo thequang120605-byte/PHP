@@ -203,5 +203,28 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        // Tạo thông báo mẫu cho sinh viên
+        \App\Models\AppNotification::firstOrCreate([
+            'user_id' => $student->id,
+            'title' => 'Chào mừng bạn đến với HUIT EventPass!',
+        ], [
+            'message' => 'Hệ thống quản lý hoạt động & điểm rèn luyện số của Trường Đại học Công Thương TP.HCM. Bắt đầu khám phá và đăng ký sự kiện ngay hôm nay.',
+            'type' => 'info',
+            'icon' => 'bell',
+            'link' => '/',
+            'is_read' => false,
+        ]);
+
+        \App\Models\AppNotification::firstOrCreate([
+            'user_id' => $student->id,
+            'title' => 'Vé giữ chỗ: Chuyên đề AI & LLMs',
+        ], [
+            'message' => 'Mã vé điện tử của bạn đã được kích hoạt. Hãy quét mã QR chung tại hội trường khi kết thúc để được ghi nhận ĐRL.',
+            'type' => 'registration',
+            'icon' => 'ticket',
+            'link' => '/my-registrations',
+            'is_read' => false,
+        ]);
     }
 }

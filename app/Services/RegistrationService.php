@@ -191,6 +191,17 @@ class RegistrationService
                         ],
                     ]);
 
+                    try {
+                        \App\Services\NotificationService::send(
+                            $nextInLine->user_id,
+                            "Được đôn lên vé chính thức: {$e->title}",
+                            "Bạn vừa được nâng lên vé chính thức từ danh sách chờ cho sự kiện \"{$e->title}\". Mã vé: {$nextInLine->reference}.",
+                            '/registrations/'.$nextInLine->id,
+                            'registration',
+                            'ticket'
+                        );
+                    } catch (\Throwable) {}
+
                     // Đánh lại số thứ tự những người còn lại trong waitlist
                     $remainingWaitlist = Registration::where('event_id', $e->id)
                         ->where('status', 'waitlist')

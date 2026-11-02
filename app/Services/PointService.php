@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Criteria;
 use App\Models\Event;
 use App\Models\EventCompletion;
 use App\Models\PointAdjustment;
@@ -10,6 +11,7 @@ use App\Models\Registration;
 use App\Models\Semester;
 use App\Models\StudentPoint;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -62,6 +64,17 @@ class PointService
                 $awarded = min($proposed, max(0, $max - $rows->sum('points')));
                 $p = StudentPoint::create(['student_id' => $u->id, 'event_id' => $e->id, 'criteria_id' => $e->criteria_id, 'semester_id' => $e->semester_id, 'points' => $awarded, 'status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now(), 'notes' => $awarded < $proposed ? 'Giới hạn trần tiêu chí; xem snapshot quy tắc.' : null, 'rule_snapshot' => $rule]);
                 AuditLog::create(['actor_id' => $actor->id, 'action' => 'points.approved', 'entity_type' => 'student_point', 'entity_id' => $p->id, 'payload' => ['points' => $awarded, 'rule' => $rule, 'completion_id' => $c->id]]);
+
+                try {
+                    NotificationService::send(
+                        $u,
+                        "Điểm rèn luyện: {$e->title}",
+                        "Bạn vừa được ghi nhận +{$awarded} điểm rèn luyện".($awarded < $proposed ? " (Chạm trần tiêu chí)" : "")." cho sự kiện \"{$e->title}\".",
+                        '/my-points',
+                        'point',
+                        'star'
+                    );
+                } catch (\Throwable) {}
 
                 return $awarded < $proposed ? 'capped' : 'approved';
             }, 3);
@@ -117,6 +130,17 @@ class PointService
             $p->update(['points' => $newPoints, 'status' => $newPoints === 0 ? 'revoked' : 'approved', 'notes' => trim($reason)]);
             AuditLog::create(['actor_id' => $actor->id, 'action' => 'points.adjusted', 'entity_type' => 'student_point', 'entity_id' => $p->id, 'payload' => ['old_points' => $old, 'new_points' => $newPoints, 'reason' => trim($reason)]]);
 
+            try {
+                NotificationService::send(
+                    $u,
+                    "Điều chỉnh điểm: {$e->title}",
+                    "Điểm rèn luyện của bạn tại \"{$e->title}\" đã được điều chỉnh thành {$newPoints} điểm. Lý do: {$reason}",
+                    '/my-points',
+                    'point',
+                    'alert'
+                );
+            } catch (\Throwable) {}
+
             return $p->fresh();
         }, 3);
     }
@@ -127,39 +151,138 @@ class PointService
             ->orderBy('id', 'desc')
             ->get();
 
+        $allCriterias = Criteria::orderBy('code')->get();
+        $studentRegistrations = Registration::where('user_id', $student->id)->pluck('event_id')->all();
+
         $results = [];
 
         foreach ($semesters as $sem) {
             $records = StudentPoint::where('student_id', $student->id)
                 ->where('semester_id', $sem->id)
-                ->with(['event', 'criteria', 'adjustments.user'])
+                ->with(['event.category', 'criteria', 'adjustments.user'])
+                ->get();
+
+            // Tính các ca điểm danh đã hoàn thành nhưng đang chờ BTC duyệt điểm
+            $pendingCompletions = EventCompletion::where('user_id', $student->id)
+                ->whereHas('event', fn ($q) => $q->where('semester_id', $sem->id)->where('status', 'published'))
+                ->whereDoesntHave('event.studentPoints', fn ($q) => $q->where('student_id', $student->id))
+                ->with(['event.criteria', 'event.category'])
                 ->get();
 
             $byCriteria = [];
-            $totalPoints = 0;
+            $totalApproved = 0;
+            $totalPending = 0;
+            $totalRevoked = 0;
 
+            // Khởi tạo tất cả tiêu chí của trường
+            foreach ($allCriterias as $crit) {
+                $byCriteria[$crit->id] = [
+                    'criteria' => $crit,
+                    'total' => 0,
+                    'approved_points' => 0,
+                    'pending_points' => 0,
+                    'revoked_points' => 0,
+                    'max_points' => (int) $crit->max_points,
+                    'items' => [],
+                    'pending_items' => [],
+                ];
+            }
+
+            // Ghi nhận điểm chính thức & điều chỉnh
             foreach ($records as $r) {
                 $critId = $r->criteria_id;
                 if (! isset($byCriteria[$critId])) {
                     $byCriteria[$critId] = [
                         'criteria' => $r->criteria,
                         'total' => 0,
+                        'approved_points' => 0,
+                        'pending_points' => 0,
+                        'revoked_points' => 0,
+                        'max_points' => (int) ($r->criteria->max_points ?? 20),
                         'items' => [],
+                        'pending_items' => [],
                     ];
                 }
 
+                // Tính giải trình trần điểm nếu có
+                $rule = $r->rule_snapshot ?? [];
+                $proposed = (int) ($rule['proposed_points'] ?? ($r->event->proposed_points ?? $r->points));
+                $cappingNote = null;
+                if ($r->status === 'approved' && $r->points < $proposed) {
+                    $max = $byCriteria[$critId]['max_points'];
+                    $cappingNote = "Sự kiện đề xuất {$proposed} điểm; bạn còn {$r->points} điểm trước khi đạt trần ({$max}đ) nên được ghi nhận {$r->points} điểm.";
+                }
+
+                $r->capping_note = $cappingNote;
+
                 if ($r->status === 'approved') {
+                    $byCriteria[$critId]['approved_points'] += $r->points;
                     $byCriteria[$critId]['total'] += $r->points;
-                    $totalPoints += $r->points;
+                    $totalApproved += $r->points;
+                } elseif ($r->status === 'revoked') {
+                    $byCriteria[$critId]['revoked_points'] += $r->points;
+                    $totalRevoked += $r->points;
                 }
 
                 $byCriteria[$critId]['items'][] = $r;
             }
 
+            // Ghi nhận điểm chờ duyệt
+            foreach ($pendingCompletions as $pc) {
+                $critId = $pc->event->criteria_id;
+                if ($critId && isset($byCriteria[$critId])) {
+                    $proposed = (int) ($pc->event->proposed_points ?? 0);
+                    $byCriteria[$critId]['pending_points'] += $proposed;
+                    $byCriteria[$critId]['pending_items'][] = $pc;
+                    $totalPending += $proposed;
+                }
+            }
+
+            // Tính phần trăm & thiếu điểm cho từng tiêu chí
+            $criteriaGaps = [];
+            foreach ($byCriteria as $critId => &$cData) {
+                $cData['gap'] = max(0, $cData['max_points'] - $cData['approved_points']);
+                $cData['percentage'] = min(100, round(($cData['approved_points'] / max(1, $cData['max_points'])) * 100));
+                if ($cData['gap'] > 0) {
+                    $criteriaGaps[$critId] = $cData['gap'];
+                }
+            }
+            unset($cData);
+
+            // Gợi ý sự kiện thông minh dựa trên tiêu chí còn thiếu
+            arsort($criteriaGaps);
+            $missingCriteriaIds = array_keys($criteriaGaps);
+
+            $recommendations = [];
+            if (! empty($missingCriteriaIds)) {
+                $recommendEvents = Event::where('semester_id', $sem->id)
+                    ->where('status', 'published')
+                    ->where('ends_at', '>=', now())
+                    ->where('closes_at', '>', now())
+                    ->whereIn('criteria_id', $missingCriteriaIds)
+                    ->whereNotIn('id', $studentRegistrations)
+                    ->with(['criteria', 'category'])
+                    ->orderBy('starts_at', 'asc')
+                    ->limit(4)
+                    ->get();
+
+                foreach ($recommendEvents as $rev) {
+                    $critName = $rev->criteria?->name ?? 'chuyên đề';
+                    $gap = $criteriaGaps[$rev->criteria_id] ?? 0;
+                    $rev->recommend_reason = "Bạn còn thiếu {$gap} điểm ở tiêu chí \"{$critName}\". Tham gia để tích lũy +{$rev->proposed_points} ĐRL.";
+                    $recommendations[] = $rev;
+                }
+            }
+
             $results[] = [
                 'semester' => $sem,
-                'total_points' => $totalPoints,
+                'total_points' => $totalApproved,
+                'total_approved' => $totalApproved,
+                'total_pending' => $totalPending,
+                'total_revoked' => $totalRevoked,
+                'max_possible' => collect($byCriteria)->sum('max_points'),
                 'by_criteria' => $byCriteria,
+                'recommendations' => $recommendations,
             ];
         }
 

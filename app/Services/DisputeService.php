@@ -7,6 +7,7 @@ use App\Models\Dispute;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -102,6 +103,23 @@ class DisputeService
                     'resolution_notes' => $resolutionNotes,
                 ],
             ]);
+
+            try {
+                $statusText = match($status) {
+                    'resolved' => 'Đã chấp thuận giải quyết',
+                    'rejected' => 'Đã từ chối',
+                    'in_review' => 'Đang đối soát',
+                    default => $status
+                };
+                NotificationService::send(
+                    $dispute->user_id,
+                    "Phản hồi khiếu nại #{$dispute->ticket_code}",
+                    "Yêu cầu cho \"{$dispute->event->title}\" đã được cập nhật: {$statusText}. Ghi chú BTC: {$resolutionNotes}",
+                    '/my-disputes',
+                    'dispute',
+                    'check'
+                );
+            } catch (\Throwable) {}
 
             return $dispute->fresh();
         });

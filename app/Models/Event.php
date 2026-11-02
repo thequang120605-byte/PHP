@@ -19,6 +19,8 @@ class Event extends Model
             'capacity' => 'integer',
             'proposed_points' => 'integer',
             'min_minutes_between' => 'integer',
+            'is_finalized' => 'boolean',
+            'finalized_at' => 'datetime',
         ];
     }
 

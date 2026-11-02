@@ -75,6 +75,20 @@ class EventController extends Controller
             ? "Bạn đã được thêm vào danh sách chờ (Thứ tự: #{$reg->waitlist_position}). Khi có người hủy chỗ, hệ thống sẽ tự động xác nhận vé cho bạn."
             : 'Đã giữ chỗ. Chỉ quét QR chung khi BTC mở điểm danh cuối sự kiện.';
 
+        // Gửi thông báo trong ứng dụng
+        try {
+            \App\Services\NotificationService::send(
+                $user,
+                $reg->status === 'waitlist' ? "Hàng chờ: {$event->title}" : "Vé giữ chỗ: {$event->title}",
+                $reg->status === 'waitlist'
+                    ? "Bạn đang ở vị trí #{$reg->waitlist_position} trong danh sách chờ. Hệ thống sẽ tự động đôn lên khi có chỗ."
+                    : "Mã vé {$reg->reference} đã sẵn sàng. Điểm danh tại hội trường cuối sự kiện để nhận ĐRL.",
+                '/registrations/'.$reg->id,
+                'registration',
+                'ticket'
+            );
+        } catch (\Throwable) {}
+
         return redirect('/registrations/'.$reg->id)->with('success', $msg);
     }
 
