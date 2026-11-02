@@ -84,16 +84,38 @@
             <p>Điểm chỉ được duyệt chính thức cho sinh viên có mặt thực tế và hoàn thành đủ yêu cầu điểm danh.</p>
         </div>
 
+        <!-- Khối công cụ Ban tổ chức (Tách biệt hoàn toàn và phân quyền chính xác từng nút) -->
+        @auth
+            @php
+                $isAdmin = auth()->user()->role === 'admin';
+                $isManager = $isAdmin || $e->hasStaffRole(auth()->user(), ['manager']);
+                $isScanner = $isAdmin || $e->hasStaffRole(auth()->user(), ['scanner', 'manager']);
+                $isApprover = $isAdmin || $e->hasStaffRole(auth()->user(), ['approver', 'manager']);
+            @endphp
+
+            @if($isManager || $isScanner || $isApprover)
+                <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                    <small style="font-size: 11px; font-weight: 800; color: #1e40af; letter-spacing: 1px; display: block; margin-bottom: 8px;">CÔNG CỤ BAN TỔ CHỨC</small>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        @if($isManager)
+                            <a class="btn full btn-sm" href="/admin/events/{{ $e->id }}/participants">Quản lý người tham dự</a>
+                        @endif
+                        @if($isScanner)
+                            <a class="btn full secondary btn-sm" href="/events/{{ $e->id }}/attendance/scan">Mở QR cuối sự kiện</a>
+                        @endif
+                        @if($isApprover)
+                            <a class="btn full secondary btn-sm" href="/events/{{ $e->id }}/points/review">Duyệt điểm rèn luyện</a>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        @endauth
+
+        <!-- Khối trạng thái đăng ký của cá nhân -->
         @if($reg?->status === 'confirmed')
-            <a class="btn full" href="/registrations/{{ $reg->id }}">Mở phiếu đăng ký</a>
+            <a class="btn full" href="/registrations/{{ $reg->id }}">Mở phiếu đăng ký của bạn</a>
         @elseif($reg?->status === 'waitlist')
             <a class="btn full secondary" href="/registrations/{{ $reg->id }}">Xem vị trí trong danh sách chờ (#{{ $reg->waitlist_position }})</a>
-        @elseif(auth()->user()?->role === 'admin' || (auth()->user() && $e->hasStaffRole(auth()->user(), ['scanner', 'approver', 'manager'])))
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <a class="btn full" href="/admin/events/{{ $e->id }}/participants">Quản lý người tham dự</a>
-                <a class="btn full secondary" href="/events/{{ $e->id }}/attendance/scan">Mở QR cuối sự kiện</a>
-                <a class="btn full secondary" href="/events/{{ $e->id }}/points/review">Duyệt điểm rèn luyện</a>
-            </div>
         @elseif(!$e->isOpen())
             <p class="muted">Hiện sự kiện không trong thời gian tiếp nhận đăng ký.</p>
         @elseif($e->confirmed_count >= $e->capacity)

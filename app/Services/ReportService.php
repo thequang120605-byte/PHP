@@ -23,6 +23,12 @@ class ReportService
         $attendedComplete = (clone $confirmed)->whereHas('completion')->count();
         $attendedIncomplete = (clone $confirmed)->whereDoesntHave('completion')->whereIn('attendance_status', ['needs_verification', 'attended_complete', 'attended_incomplete'])->count();
         $absent = (clone $confirmed)->whereDoesntHave('completion')->where('attendance_status', 'absent')->count();
+        $unrecorded = (clone $confirmed)->whereDoesntHave('completion')->whereNotIn('attendance_status', [
+            'needs_verification',
+            'attended_complete',
+            'attended_incomplete',
+            'absent',
+        ])->count();
 
         $pointsAwarded = StudentPoint::where('event_id', $event->id)->where('status', 'approved')->sum('points');
         $studentsReceivedPoints = StudentPoint::where('event_id', $event->id)->where('status', 'approved')->count();
@@ -37,6 +43,7 @@ class ReportService
             'attended_complete' => $attendedComplete,
             'attended_incomplete' => $attendedIncomplete,
             'absent' => $absent,
+            'unrecorded' => $unrecorded,
             'points_awarded' => $pointsAwarded,
             'students_received_points' => $studentsReceivedPoints,
         ];

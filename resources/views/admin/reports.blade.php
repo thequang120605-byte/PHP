@@ -66,6 +66,7 @@
                 <th>Đủ điều kiện</th>
                 <th>Thiếu giờ ra</th>
                 <th>Vắng mặt</th>
+                <th>Chưa ghi nhận</th>
                 <th>Tỷ lệ tham dự</th>
                 <th>Điểm cấp</th>
                 <th>Thao tác</th>
@@ -98,6 +99,7 @@
                         @endif
                     </td>
                     <td><span class="muted">{{ $item['absent'] }}</span></td>
+                    <td><span class="muted">{{ $item['unrecorded'] }}</span></td>
                     <td>
                         <strong style="color: {{ $item['attendance_rate'] >= 70 ? '#15803d' : '#d97706' }};">
                             {{ $item['attendance_rate'] }}%
@@ -115,7 +117,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="10" style="text-align: center; padding: 30px;" class="muted">
+                    <td colspan="11" style="text-align: center; padding: 30px;" class="muted">
                         Chưa có sự kiện nào trong học kỳ này.
                     </td>
                 </tr>

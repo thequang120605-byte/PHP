@@ -86,9 +86,24 @@ class PointService
         }
 
         return DB::transaction(function () use ($point, $newPoints, $reason, $actor) {
-            Event::sharedLock()->findOrFail($point->event_id);
-            User::lockForUpdate()->findOrFail($point->student_id);
+            $e = Event::sharedLock()->findOrFail($point->event_id);
+            $u = User::lockForUpdate()->findOrFail($point->student_id);
             $p = StudentPoint::lockForUpdate()->findOrFail($point->id);
+
+            // Giảm/thu hồi điểm luôn được phép (sửa sai, xử lý vi phạm).
+            // Tăng/khôi phục điểm yêu cầu sinh viên đang hoạt động, sự kiện published và không được tự duyệt cho bản thân.
+            if ($newPoints > $p->points) {
+                if (! $u->is_active) {
+                    $this->fail('Sinh viên đang bị khóa tài khoản, không thể tăng điểm.');
+                }
+                if ($e->status !== 'published') {
+                    $this->fail('Sự kiện không ở trạng thái hợp lệ để tăng điểm.');
+                }
+                if ($actor->id === $u->id) {
+                    $this->fail('Người có quyền không thể tự điều chỉnh tăng điểm cho chính mình.');
+                }
+            }
+
             if ($newPoints > 0 && ! EventCompletion::where('event_id', $p->event_id)->where('user_id', $p->student_id)->exists()) {
                 $this->fail('Chưa có bằng chứng hoàn thành theo quy trình mới.');
             }

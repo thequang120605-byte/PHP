@@ -21,8 +21,8 @@
 
         <div class="two">
             <label>
-                Mã số sinh viên (MSSV)
-                <input type="text" name="student_code" value="{{ old('student_code', auth()->user()->student_code) }}" required pattern="[0-9]{8,15}">
+                Mã số sinh viên (Cố định)
+                <input type="text" value="{{ auth()->user()->student_code ?? 'N/A' }}" disabled style="background: #f1f5f9; color: #64748b; cursor: not-allowed;">
             </label>
 
             <label>
@@ -33,10 +33,10 @@
 
         <label>
             Địa chỉ Email (Cố định theo tài khoản)
-            <input type="email" value="{{ auth()->user()->email }}" disabled>
+            <input type="email" value="{{ auth()->user()->email }}" disabled style="background: #f1f5f9; color: #64748b; cursor: not-allowed;">
         </label>
 
-        <p class="fine">Mẹo: Đảm bảo thông tin MSSV và Lớp chính xác để BTC công nhận điểm rèn luyện.</p>
+        <p class="fine">Mẹo: MSSV và Email được khóa cố định để đảm bảo tính toàn vẹn danh tính khi cấp điểm rèn luyện. Nếu cần đính chính, vui lòng liên hệ Ban Quản trị.</p>
 
         <div style="margin-top: 10px;">
             <button type="submit" class="btn">Lưu thay đổi hồ sơ</button>

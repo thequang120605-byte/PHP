@@ -149,7 +149,7 @@
             <div class="card-body">
                 <div class="meta">
                     <span class="badge {{ $e->isOpen() ? 'green' : '' }}">{{ $e->label() }}</span>
-                    <span class="points-chip">⭐ +{{ $e->proposed_points }} ĐRL</span>
+                    <span class="points-chip">⭐ Tối đa {{ $e->proposed_points }} điểm đề xuất</span>
                 </div>
 
                 <h3><a href="/events/{{ $e->id }}">{{ $e->title }}</a></h3>

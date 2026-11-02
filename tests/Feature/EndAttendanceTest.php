@@ -379,4 +379,37 @@ class EndAttendanceTest extends TestCase
         $this->finish($e, $a, $u);
         $this->assertSame(1, app(ReportService::class)->getEventReport($e)['attended_complete']);
     }
+
+    public function test_student_accessing_confirm_page_without_code_does_not_receive_valid_payload(): void
+    {
+        [$e, $a, $u] = $this->setupEvent();
+        $service = app(AttendanceService::class);
+        $session = $service->open($e, $a);
+        $expectedPayload = $service->payload($session);
+
+        $response = $this->actingAs($u)->get('/events/'.$e->id.'/attendance/confirm');
+
+        $response->assertOk();
+        $response->assertDontSee($expectedPayload);
+        $response->assertViewMissing('demoCode');
+    }
+
+    public function test_unregistered_student_cannot_access_confirm_page(): void
+    {
+        [$e, $a] = $this->setupEvent();
+        $unregisteredStudent = $this->user();
+
+        $response = $this->actingAs($unregisteredStudent)->get('/events/'.$e->id.'/attendance/confirm');
+
+        $response->assertStatus(403);
+    }
+
+    public function test_non_student_role_cannot_access_confirm_page(): void
+    {
+        [$e, $a] = $this->setupEvent();
+
+        $response = $this->actingAs($a)->get('/events/'.$e->id.'/attendance/confirm');
+
+        $response->assertStatus(403);
+    }
 }

@@ -53,17 +53,37 @@ class AttendanceController extends Controller
         return response()->json(['active' => true, 'svg' => QrService::svg($url, 340), 'expires_at' => $s->expires_at->toIso8601String(), 'server_now' => now()->toIso8601String()])->withHeaders(['Cache-Control' => 'no-store, private', 'Referrer-Policy' => 'no-referrer']);
     }
 
-    public function confirm(Event $event, Request $r)
+    public function confirm(Event $event, Request $request)
     {
-        $code = $r->query('code', '');
-        $activeSession = $this->service->current($event);
-        $hasActiveSession = $activeSession && $activeSession->active();
-        $demoCode = ($hasActiveSession && ($r->user()?->role === 'admin' || app()->environment('local') || $r->user()?->is_active))
-            ? $this->service->payload($activeSession)
-            : null;
+        abort_unless(
+            $request->user()->role === 'student',
+            403
+        );
 
-        return response()->view('attendance.confirm', compact('event', 'code', 'hasActiveSession', 'demoCode'))
-            ->withHeaders(['Cache-Control' => 'no-store, private', 'Referrer-Policy' => 'no-referrer']);
+        $registered = $event->registrations()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'confirmed')
+            ->exists();
+
+        abort_unless(
+            $event->status === 'published' && $registered,
+            403
+        );
+
+        $data = $request->validate([
+            'code' => ['nullable', 'string', 'max:150'],
+        ]);
+
+        $session = $this->service->current($event);
+
+        return response()->view('attendance.confirm', [
+            'event' => $event,
+            'code' => $data['code'] ?? '',
+            'hasActiveSession' => $session?->active() ?? false,
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, private',
+            'Referrer-Policy' => 'no-referrer',
+        ]);
     }
 
     public function complete(Event $event, Request $r)

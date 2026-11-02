@@ -33,8 +33,6 @@ class AuthController extends Controller
         $d = $r->validate(['name' => 'required|string|max:100', 'student_code' => ['required', 'regex:/^[0-9]{8,15}$/', 'unique:users,student_code'], 'class_name' => 'required|string|max:50', 'email' => 'required|email|max:255|unique:users,email', 'password' => ['required', 'confirmed', Password::min(10)->letters()->numbers()]]);
         $d['role'] = 'student';
         $d['is_active'] = true;
-        $d['role'] = 'student';
-        $d['is_active'] = true;
         $u = User::create($d);
         Auth::login($u);
         $r->session()->regenerate();
@@ -54,9 +52,12 @@ class AuthController extends Controller
     public function profile(Request $r)
     {
         $u = $r->user();
-        $d = $r->validate(['name' => 'required|string|max:100', 'class_name' => 'required|string|max:50', 'student_code' => ['required', 'regex:/^[0-9]{8,15}$/', Rule::unique('users')->ignore($u->id)]]);
+        $d = $r->validate([
+            'name' => 'required|string|max:100',
+            'class_name' => 'required|string|max:50',
+        ]);
         $u->update($d);
 
-        return back()->with('success', 'Đã cập nhật hồ sơ. Phiếu đăng ký cũ giữ nguyên thông tin để đối chiếu.');
+        return back()->with('success', 'Đã cập nhật hồ sơ (Họ tên và Lớp). MSSV là định danh cố định không thể tự ý sửa đổi.');
     }
 }

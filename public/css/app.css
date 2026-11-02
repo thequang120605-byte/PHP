@@ -57,6 +57,7 @@ h3 { font-size: 17px; font-weight: 600; }
   z-index: 100;
   border-right: 1px solid var(--sidebar-border);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
 }
 
 .brand {
@@ -511,6 +512,9 @@ footer {
   grid-template-columns: repeat(3, 1fr);
   gap: 22px;
   margin: 0 0 34px;
+}
+.stats--admin {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .stat-card {
   display: flex;
@@ -1451,6 +1455,14 @@ tr:hover td { background: #f8fafc; }
   color: #334155;
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
 /* ==========================================================================
    RESPONSIVE DESIGN
    ========================================================================== */
@@ -1460,6 +1472,12 @@ tr:hover td { background: #f8fafc; }
   main { padding: 24px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero h1 { font-size: 30px; }
+}
+
+@media (max-width: 1100px) {
+  .stats--admin {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 860px) {
@@ -1478,6 +1496,7 @@ tr:hover td { background: #f8fafc; }
   .hero { padding: 28px; flex-direction: column; text-align: center; }
   .ticket-3d { display: none; }
   .stats { grid-template-columns: 1fr; gap: 14px; }
+  .stats--admin { grid-template-columns: 1fr; }
   .grid { grid-template-columns: 1fr; }
   .filters-bar { flex-direction: column; align-items: stretch; }
   .two, .three { grid-template-columns: 1fr; }
