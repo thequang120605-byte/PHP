@@ -16,11 +16,14 @@
             Đề xuất: <strong>+{{ $event->proposed_points }} đ/sinh viên</strong>
         </p>
     </div>
-    @if($event->semester_id && $event->criteria_id && $eligibleRegistrations->count() > 0)
+    @php
+        $unapprovedCount = $eligibleRegistrations->whereNotIn('user_id', $recordedPoints->pluck('student_id'))->count();
+    @endphp
+    @if($event->semester_id && $event->criteria_id && $unapprovedCount > 0)
         <form method="POST" action="/events/{{ $event->id }}/points/approve">
             @csrf
-            <button class="btn green" style="background: #15803d; color: white;" onclick="return confirm('Duyệt tối đa 200 hồ sơ chưa ghi nhận tiếp theo?');">
-                Duyệt đợt tiếp theo (tối đa 200 SV)
+            <button class="btn green" style="background: #16a34a; color: white; padding: 12px 20px; font-weight: 700;" onclick="return confirm('Xác nhận duyệt đợt tiếp theo (tối đa 200 hồ sơ) cho sự kiện?');">
+                ✓ Duyệt 200 hồ sơ chưa duyệt tiếp theo (Còn chờ: {{ $unapprovedCount }} SV)
             </button>
         </form>
     @endif

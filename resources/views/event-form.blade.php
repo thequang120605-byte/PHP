@@ -16,7 +16,7 @@
         @if($e->exists) @method('PUT') @endif
 
         <label>Tên sự kiện
-            <input name="title" value="{{ old('title', $e->title) }}" required maxlength="180">
+            <input type="text" name="title" value="{{ old('title', $e->title) }}" required maxlength="180">
         </label>
 
         <div class="two">

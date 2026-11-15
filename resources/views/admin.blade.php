@@ -138,14 +138,18 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($logs as $l)
+            @forelse($logs as $l)
                 <tr>
                     <td>{{ $l->created_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i:s') }}</td>
                     <td><strong>{{ $l->actor?->name ?? 'Hệ thống' }}</strong></td>
                     <td><span class="badge">{{ $l->action }}</span></td>
                     <td><span class="mono">{{ $l->entity_type }} #{{ $l->entity_id }}</span></td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 25px;" class="muted">Chưa có nhật ký kiểm toán nào được ghi nhận.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </section>

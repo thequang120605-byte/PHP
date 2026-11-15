@@ -19,7 +19,7 @@
     </form>
 
     <div style="border-top: 1px solid #e2e8f0; padding-top: 10px;">
-        @foreach($categories as $c)
+        @forelse($categories as $c)
             <div class="category-row">
                 <form class="filters" method="POST" action="/admin/categories/{{ $c->id }}" style="margin: 0;">
                     @csrf
@@ -34,7 +34,9 @@
                     <button type="submit" class="text-btn red">Xóa</button>
                 </form>
             </div>
-        @endforeach
+        @empty
+            <p class="muted" style="text-align: center; padding: 24px 0;">Chưa có danh mục nào. Bạn hãy nhập tên và bấm "+ Thêm danh mục" ở trên.</p>
+        @endforelse
     </div>
 </section>
 @endsection

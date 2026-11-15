@@ -8,7 +8,7 @@
 <div class="page-heading">
     <small class="eyebrow">ĐỐI SOÁT & GIẢI QUYẾT SAI SÓT</small>
     <h1>Gửi phản hồi / Khiếu nại thông tin sự kiện</h1>
-    <p><strong>{{ $event->title }}</strong> · Thời hạn tiếp nhận: {{ $event->dispute_closes_at ? $event->dispute_closes_at->format('d/m/Y H:i') : 'Trong vòng 7 ngày sau kết thúc' }}</p>
+    <p><strong>{{ $event->title }}</strong> · Thời hạn tiếp nhận: {{ $event->dispute_closes_at ? $event->dispute_closes_at->timezone('Asia/Ho_Chi_Minh')->format('H:i · d/m/Y') : 'Trong vòng 7 ngày sau kết thúc' }}</p>
 </div>
 
 <div class="detail">
@@ -18,15 +18,15 @@
 
             <label>Loại vấn đề gặp phải:
                 <select name="type" required>
-                    <option value="missing_attendance">Đăng ký thành công nhưng thiếu tên trong danh sách điểm danh</option>
-                    <option value="missing_checkout">Có tham dự thực tế nhưng thiếu giờ ra (Check-out)</option>
-                    <option value="missing_points">Đủ điều kiện hoàn thành nhưng chưa được ghi nhận điểm</option>
-                    <option value="incorrect_points">Điểm rèn luyện bị ghi nhận sai lệch</option>
+                    <option value="missing_attendance" @selected(old('type') == 'missing_attendance')>Đăng ký thành công nhưng thiếu tên trong danh sách điểm danh</option>
+                    <option value="missing_checkout" @selected(old('type') == 'missing_checkout')>Có tham dự thực tế nhưng thiếu giờ ra (Check-out)</option>
+                    <option value="missing_points" @selected(old('type') == 'missing_points')>Đủ điều kiện hoàn thành nhưng chưa được ghi nhận điểm</option>
+                    <option value="incorrect_points" @selected(old('type') == 'incorrect_points')>Điểm rèn luyện bị ghi nhận sai lệch</option>
                 </select>
             </label>
 
             <label>Mô tả chi tiết sự việc:
-                <textarea name="description" rows="5" placeholder="VD: Tôi có tham dự tại hội trường B từ 14h đến 16h30, lúc về máy quét QR bị nghẽn nên chưa kịp quét ra. Tôi xin đính kèm ảnh chụp tại sự kiện làm minh chứng..." required></textarea>
+                <textarea name="description" rows="5" placeholder="VD: Tôi có tham dự tại hội trường B từ 14h đến 16h30, lúc về máy quét QR bị nghẽn nên chưa kịp quét ra. Tôi xin đính kèm ảnh chụp tại sự kiện làm minh chứng..." required>{{ old('description') }}</textarea>
             </label>
 
             <label>Đính kèm minh chứng (Ảnh chụp tại sự kiện, bản scan thẻ SV, phiếu giữ chỗ) - JPG, PNG, PDF tối đa 10 MB:

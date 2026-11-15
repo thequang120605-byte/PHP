@@ -24,9 +24,10 @@
             </label>
 
             <div class="notice">
-                <strong>Yêu cầu cấu trúc file CSV:</strong>
-                <p>Cần có ít nhất cột chứa tiêu đề <code>MSSV</code> (hoặc <code>student_code</code>). Các cột tùy chọn: <code>Họ tên</code>, <code>Lớp</code>, <code>Email</code>, <code>Thời gian đăng ký</code>.<br>
-                Hệ thống tự động lưu file gốc và thời gian nhập để phục vụ đối soát.</p>
+                <strong>Yêu cầu cấu trúc file CSV UTF-8 (Tối đa 1.000 dòng / 10 MB):</strong>
+                <p>File CSV cần có tiêu đề cột gồm: <code>mssv</code> (bắt buộc) và <code>source_time</code> (thời gian ghi nhận nguồn, định dạng <code>YYYY-MM-DD HH:MM:SS</code> hoặc <code>DD/MM/YYYY HH:MM:SS</code>). Các cột tùy chọn: <code>name</code>, <code>class_name</code>, <code>email</code>.<br>
+                <em>Mẹo xuất file từ Excel:</em> Mở Excel, chọn <strong>File → Save As → CSV UTF-8 (Comma delimited) (*.csv)</strong> để giữ đúng mã hóa tiếng Việt.<br>
+                Hệ thống sẽ kiểm tra trùng lặp trên cơ sở dữ liệu thực tế và lưu file gốc phục vụ hậu kiểm.</p>
             </div>
 
             <button class="btn">Tải lên & Xem trước dữ liệu (Preview)</button>

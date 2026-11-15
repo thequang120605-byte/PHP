@@ -60,8 +60,16 @@
                     </td>
                     <td>
                         <strong style="color: #1e3a8a;">{{ $d->typeLabel() }}</strong>
-                        <p style="margin: 4px 0; font-size: 12px; color: #475569;">{{ $d->description }}</p>
-                        <small class="muted">Gửi lúc {{ $d->created_at->format('d/m/Y H:i') }}</small>
+                        @if(mb_strlen($d->description) > 120)
+                            <p style="margin: 4px 0; font-size: 12px; color: #475569;">{{ Str::limit($d->description, 120) }}</p>
+                            <details style="margin-bottom: 4px;">
+                                <summary style="cursor: pointer; font-size: 11.5px; color: #2563eb; font-weight: 600;">Xem đầy đủ nội dung</summary>
+                                <p style="margin: 6px 0 0; font-size: 12px; color: #1e293b; background: #f8fafc; padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0; white-space: pre-line;">{{ $d->description }}</p>
+                            </details>
+                        @else
+                            <p style="margin: 4px 0; font-size: 12px; color: #475569;">{{ $d->description }}</p>
+                        @endif
+                        <small class="muted">Gửi lúc {{ $d->created_at->timezone('Asia/Ho_Chi_Minh')->format('H:i · d/m/Y') }}</small>
                     </td>
                     <td>
                         @if($d->evidence_file_path)
@@ -81,7 +89,7 @@
                     <td>
                         <details>
                             <summary style="cursor: pointer; color: #2563eb; font-size: 12px; font-weight: 600;">Cập nhật xử lý</summary>
-                            <form method="POST" action="/admin/disputes/{{ $d->id }}/process" style="margin-top: 8px; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; min-width: 260px;">
+                            <form method="POST" action="/disputes/{{ $d->id }}/process" style="margin-top: 8px; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; min-width: 260px;">
                                 @csrf
                                 <label style="font-size: 11px; margin-bottom: 6px;">Trạng thái:
                                     <select name="status" style="padding: 4px; font-size: 12px;">
@@ -92,7 +100,7 @@
                                     </select>
                                 </label>
                                 <label style="font-size: 11px; margin-bottom: 6px;">Ghi chú kết luận (bắt buộc):
-                                    <input type="text" name="resolution_notes" value="{{ $d->resolution_notes }}" placeholder="VD: Đã đối chiếu ảnh minh chứng hợp lệ, công nhận giờ ra" required style="padding: 4px 8px; font-size: 12px;">
+                                    <textarea name="resolution_notes" rows="2" placeholder="VD: Đã đối chiếu ảnh minh chứng hợp lệ, công nhận giờ ra" required style="padding: 6px 8px; font-size: 12px; width: 100%; border: 1px solid #cbd5e1; border-radius: 4px;">{{ $d->resolution_notes }}</textarea>
                                 </label>
                                 <button class="btn btn-sm" style="margin-top: 6px;">Lưu kết luận</button>
                             </form>

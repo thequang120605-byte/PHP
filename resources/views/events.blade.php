@@ -224,7 +224,7 @@
             </div>
             <span class="eyebrow" style="color: #2563eb;">TRƯỜNG ĐẠI HỌC CÔNG THƯƠNG TP. HỒ CHÍ MINH</span>
             <h3>Hiện chưa có sự kiện nào trong danh sách hiển thị</h3>
-            <p>Hệ thống hiện tại chưa có sự kiện phù hợp với điều kiện tìm kiếm hoặc dữ liệu mẫu chưa được nạp. Hãy thử bỏ chọn bộ lọc để xem toàn bộ danh mục.</p>
+            <p>Hiện tại chưa có hoạt động nào phù hợp với từ khóa hoặc bộ lọc đang chọn. Bạn hãy thử xóa bộ lọc để khám phá toàn bộ sự kiện sắp diễn ra.</p>
             <div class="empty-state-actions">
                 <a href="/" class="btn">
                     <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">

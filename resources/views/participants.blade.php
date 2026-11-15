@@ -23,8 +23,8 @@
     
     <form method="POST" action="/events/{{ $event->id }}/attendance/reconcile" style="display: inline-block;">
         @csrf
-        <button class="btn secondary" title="Tự động kiểm tra điều kiện vào/ra để xác nhận trạng thái hoàn thành">
-            Chạy đối soát tự động
+        <button class="btn secondary" title="Kiểm tra và thống kê các lượt có bằng chứng hoàn thành theo quy trình">
+            Kiểm tra tình trạng hồ sơ
         </button>
     </form>
 

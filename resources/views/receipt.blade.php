@@ -99,7 +99,49 @@
             </div>
         </div>
 
-        <p class="notice" style="margin-bottom: 20px;">Phiếu xác nhận đăng ký, chưa xác nhận tham dự và chưa cộng điểm.</p>
+        <!-- Banner trạng thái thực tế của hồ sơ -->
+        @php
+            $hasPoints = \App\Models\StudentPoint::where('student_id', $reg->user_id)->where('event_id', $reg->event_id)->first();
+            $hasCompletion = $reg->completion ?? \App\Models\EventCompletion::where('event_id', $reg->event_id)->where('user_id', $reg->user_id)->first();
+        @endphp
+
+        @if($hasPoints && $hasPoints->status === 'approved')
+            <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">🎉</span>
+                <div>
+                    <strong style="color: #166534; font-size: 14.5px; display: block;">Đã được duyệt điểm rèn luyện chính thức (+{{ $hasPoints->points }} ĐRL)!</strong>
+                    <span style="color: #15803d; font-size: 13px;">Hồ sơ tham dự của bạn đã hoàn tất chu trình đối soát và điểm đã được tích lũy vào học kỳ.</span>
+                </div>
+            </div>
+        @elseif($hasPoints && $hasPoints->status === 'revoked')
+            <div style="background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+                <strong style="color: #991b1b; font-size: 14.5px; display: block;">Điểm rèn luyện đã bị thu hồi</strong>
+                <span style="color: #b91c1c; font-size: 13px;">Lý do: {{ $hasPoints->notes ?? 'Đối soát vi phạm quy chế hoặc vắng mặt' }}.</span>
+            </div>
+        @elseif($hasCompletion || $reg->attendance_status === 'attended_complete')
+            <div style="background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 24px;">✓</span>
+                <div>
+                    <strong style="color: #1e40af; font-size: 14.5px; display: block;">Đã ghi nhận có mặt cuối sự kiện!</strong>
+                    <span style="color: #2563eb; font-size: 13px;">Điểm đề xuất (+{{ $reg->event->proposed_points }} ĐRL) đang chờ ban tổ chức duyệt chính thức.</span>
+                </div>
+            </div>
+        @elseif($reg->status === 'waitlist')
+            <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+                <strong style="color: #92400e; font-size: 14.5px; display: block;">Bạn đang ở danh sách chờ (Thứ hạng #{{ $reg->waitlist_position }})</strong>
+                <span style="color: #b45309; font-size: 13px;">Hệ thống sẽ tự động đôn thứ hạng thành vé chính thức khi có sinh viên khác hủy chỗ.</span>
+            </div>
+        @elseif($reg->status === 'cancelled')
+            <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+                <strong style="color: #475569; font-size: 14.5px; display: block;">Vé đã được hủy</strong>
+                <span style="color: #64748b; font-size: 13px;">Bạn đã hủy đăng ký giữ chỗ cho sự kiện này.</span>
+            </div>
+        @else
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+                <strong style="color: #1e293b; font-size: 14.5px; display: block;">Phiếu xác nhận đăng ký giữ chỗ</strong>
+                <span style="color: #64748b; font-size: 13px;">Phiếu xác nhận đăng ký, chưa xác nhận tham dự và chưa cộng điểm. Vui lòng có mặt tại hội trường và quét mã QR động cuối sự kiện để được ghi nhận có mặt.</span>
+            </div>
+        @endif
 
         <!-- Các nút thao tác vé -->
         <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;">
@@ -134,13 +176,17 @@
     <aside>
         <section class="panel" style="margin-bottom: 20px;">
             <h3 style="font-size: 16px; margin-bottom: 12px;">Thông tin chi tiết</h3>
-            <dl style="grid-template-columns: 130px 1fr; margin: 0; padding: 0; border: 0;">
+            <dl style="grid-template-columns: 140px 1fr; margin: 0; padding: 0; border: 0;">
                 <dt>Kênh gửi:</dt>
                 <dd>{{ strtoupper($reg->snapshot['source'] ?? 'Portal') }}</dd>
                 <dt>Thời gian gửi:</dt>
                 <dd>{{ $reg->submitted_at ? $reg->submitted_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') : 'N/A' }}</dd>
-                <dt>Giờ điểm danh:</dt>
-                <dd>{{ $reg->completed_at ? $reg->completed_at->timezone('Asia/Ho_Chi_Minh')->format('H:i:s d/m/Y') : ($reg->check_out_at ? $reg->check_out_at->timezone('Asia/Ho_Chi_Minh')->format('H:i:s d/m/Y') : 'Chưa điểm danh') }}</dd>
+                <dt>Ghi nhận hoàn thành:</dt>
+                <dd>{{ $hasCompletion ? $hasCompletion->completed_at->timezone('Asia/Ho_Chi_Minh')->format('H:i:s · d/m/Y') : ($reg->completed_at ? $reg->completed_at->timezone('Asia/Ho_Chi_Minh')->format('H:i:s · d/m/Y') : 'Chưa điểm danh') }}</dd>
+                @if($hasCompletion)
+                    <dt>Phương thức:</dt>
+                    <dd>{{ $hasCompletion->source === 'qr' ? 'Quét QR động hội trường' : 'Đối soát danh sách giấy' }}</dd>
+                @endif
             </dl>
         </section>
 
@@ -157,6 +203,11 @@
                             @case('attendance.check_in') Điểm danh vào @break
                             @case('attendance.check_out') Điểm danh ra @break
                             @case('attendance.completed') Hoàn thành điểm danh cuối sự kiện @break
+                            @case('points.approved') Duyệt cấp điểm rèn luyện @break
+                            @case('points.adjusted') Điều chỉnh / Thu hồi điểm @break
+                            @case('dispute.created') Gửi phản hồi sai sót / Khiếu nại @break
+                            @case('dispute.processed') Xử lý phản hồi sai sót @break
+                            @case('event.finalized') Chốt kết quả sự kiện @break
                             @default {{ $log->action }}
                         @endswitch
                     </strong>

@@ -21,23 +21,23 @@
 
             <div class="two">
                 <label>Mã tiêu chí (Code):
-                    <input type="text" name="code" placeholder="VD: TC1.1, TC2.1" required maxlength="30">
+                    <input type="text" name="code" value="{{ old('code') }}" placeholder="VD: TC1.1, TC2.1" required maxlength="30">
                 </label>
                 <label>Mức trần điểm tối đa trong học kỳ:
-                    <input type="number" name="max_points" value="20" min="1" max="100" required>
+                    <input type="number" name="max_points" value="{{ old('max_points', 20) }}" min="1" max="100" required>
                 </label>
             </div>
 
             <label>Tên tiêu chí rèn luyện:
-                <input type="text" name="name" placeholder="VD: Ý thức học tập, nghiên cứu khoa học và đổi mới sáng tạo" required maxlength="180">
+                <input type="text" name="name" value="{{ old('name') }}" placeholder="VD: Ý thức học tập, nghiên cứu khoa học và đổi mới sáng tạo" required maxlength="180">
             </label>
 
             <label>Phiên bản quy tắc / Căn cứ văn bản:
-                <input type="text" name="rule_version" value="QĐ-HUIT-2026" required maxlength="50">
+                <input type="text" name="rule_version" value="{{ old('rule_version', 'QĐ-HUIT-2026') }}" required maxlength="50">
             </label>
 
             <label>Mô tả chi tiết / Hướng dẫn xét:
-                <textarea name="description" rows="3" placeholder="Ghi chú quy chế tính điểm..."></textarea>
+                <textarea name="description" rows="3" placeholder="Ghi chú quy chế tính điểm...">{{ old('description') }}</textarea>
             </label>
 
             <button class="btn">Lưu tiêu chí</button>

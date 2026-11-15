@@ -8,7 +8,7 @@
         ← Quay lại thông tin sự kiện
     </a>
 
-    <section class="panel auth" style="max-width: 100%; margin: 0; padding: 36px 32px;">
+    <section class="panel auth" style="max-width: 100%; margin: 0;">
         <!-- Brand Header HUIT -->
         <div class="auth-brand">
             <img src="{{ asset('images/logo-huit.png') }}" alt="Logo HUIT">
@@ -32,77 +32,107 @@
             </div>
         </div>
 
-        <!-- Trạng thái nhận diện mã (Chính xác: thông báo nhận chuỗi và cần gửi lên server xác minh) -->
-        <div id="detected-banner" style="display: none; background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 22px;">📋</span>
-                <div>
-                    <strong style="color: #1e40af; display: block; font-size: 14px;">Đã nhận mã từ camera / liên kết quét!</strong>
-                    <span style="color: #2563eb; font-size: 12.5px;">Vui lòng bấm nút bên dưới để gửi lên máy chủ xác minh chữ ký và thời hạn.</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Form xác nhận chính -->
-        <form id="attendance-form" method="POST" action="/events/{{ $event->id }}/attendance/complete">
-            @csrf
-            
-            <!-- Hidden input lưu mã QR từ camera/URL -->
-            <input type="hidden" id="code" name="code" value="{{ old('code', $code) }}">
-
-            <!-- Các phương án lấy mã điểm danh khi chưa có mã -->
-            <div id="no-code-options" style="display: {{ empty($code) ? 'block' : 'none' }}; margin-bottom: 20px;">
-                <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px; line-height: 1.6;">
-                    Cuối sự kiện, BTC sẽ chiếu <strong>mã QR động</strong> lên máy chiếu hội trường. Hãy quét mã đang hiển thị để xác nhận:
+        @if($completion)
+            <!-- Màn hình đã hoàn thành điểm danh (Dedicated Completion State) -->
+            <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px;">
+                <div style="font-size: 42px; margin-bottom: 8px;">🎉</div>
+                <h3 style="color: #166534; font-size: 18px; margin-bottom: 8px; font-weight: 700;">Đã ghi nhận có mặt thành công!</h3>
+                <p style="font-size: 13.5px; color: #15803d; line-height: 1.6; margin-bottom: 16px;">
+                    Thời điểm ghi nhận: <strong>{{ $completion->completed_at ? $completion->completed_at->timezone('Asia/Ho_Chi_Minh')->format('H:i:s · d/m/Y') : now()->timezone('Asia/Ho_Chi_Minh')->format('H:i:s · d/m/Y') }}</strong><br>
+                    Phương thức: <strong>{{ $completion->source === 'qr' ? 'Quét mã QR động tại hội trường' : 'Đối soát danh sách giấy' }}</strong>
                 </p>
-
-                <!-- Trạng thái đợt điểm danh -->
-                @if($hasActiveSession)
-                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #166534; display: flex; align-items: center; gap: 8px;">
-                        <span style="display: inline-block; width: 8px; height: 8px; background: #16a34a; border-radius: 50%; box-shadow: 0 0 8px #16a34a;"></span>
-                        <strong>Đợt điểm danh đang mở tại hội trường (hiệu lực trong 10 phút).</strong>
-                    </div>
-                @else
-                    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #b45309;">
-                        <strong>Chưa có đợt điểm danh nào đang mở</strong> hoặc đợt trước đã hết hạn. Hãy theo dõi máy chiếu khi BTC thông báo mở đợt.
-                    </div>
-                @endif
-
-                <!-- Phương án A: Quét trực tiếp bằng Camera trên trình duyệt -->
-                <div style="border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 18px; text-align: center; background: #ffffff; margin-bottom: 16px;">
-                    <strong style="display: block; font-size: 14px; color: #1e293b; margin-bottom: 6px;">
-                        📷 Quét mã QR bằng Camera
-                    </strong>
-                    <p style="font-size: 12.5px; color: #64748b; margin-bottom: 12px;">
-                        Bật camera và hướng về phía màn chiếu hội trường để nhận mã tự động.
-                    </p>
-                    <button type="button" class="btn secondary" id="btn-toggle-camera" onclick="toggleCameraScanner()">
-                        Bật Camera quét mã ngay
-                    </button>
-
-                    <!-- Khung xem Video Camera -->
-                    <div id="camera-container" style="display: none; margin-top: 16px;">
-                        <video id="qr-video" style="width: 100%; max-height: 260px; border-radius: 12px; background: #000; object-fit: cover;" playsinline></video>
-                        <p id="camera-status" style="font-size: 12px; color: #64748b; margin-top: 8px;">Đang tìm kiếm mã QR...</p>
+                <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #166534; margin-bottom: 20px;">
+                    Điểm đề xuất: <strong>+{{ $event->proposed_points }} ĐRL</strong> (Đang chờ người có thẩm quyền duyệt chính thức).
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <a href="/my-registrations" class="btn">Xem vé & Đăng ký của tôi →</a>
+                    <a href="/my-points" class="btn secondary">Xem bảng điểm rèn luyện</a>
+                </div>
+            </div>
+        @else
+            <!-- Trạng thái nhận diện mã (Chính xác: thông báo nhận chuỗi và cần gửi lên server xác minh) -->
+            <div id="detected-banner" style="display: none; background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 22px;">📋</span>
+                    <div>
+                        <strong style="color: #1e40af; display: block; font-size: 14px;">Đã đọc được mã điểm danh!</strong>
+                        <span style="color: #2563eb; font-size: 12.5px;">Vui lòng bấm nút xác nhận bên dưới để gửi lên máy chủ kiểm tra chữ ký HMAC và thời hạn đợt.</span>
                     </div>
                 </div>
-
-                <!-- Phương án B: Nhập mã dự phòng (Nếu camera bị lỗi) -->
-                <details style="font-size: 13px; color: #64748b; text-align: left;">
-                    <summary style="cursor: pointer; font-weight: 600; color: #2563eb; margin-bottom: 8px;">
-                        Nhập hoặc dán mã thủ công (dự phòng sự cố camera)
-                    </summary>
-                    <div style="padding-top: 8px;">
-                        <input type="text" id="manual-code-input" placeholder="Dán mã điểm danh vào đây..." style="font-size: 13px; font-family: monospace;" oninput="onManualInput(this.value)">
-                    </div>
-                </details>
             </div>
 
-            <!-- Nút gửi xác nhận -->
-            <button type="submit" id="btn-submit-attendance" class="btn full" style="font-size: 15px; padding: 14px; margin-top: 10px;" {{ empty($code) ? 'disabled' : '' }}>
-                Xác nhận tôi có mặt cuối sự kiện
-            </button>
-        </form>
+            <!-- Form xác nhận chính -->
+            <form id="attendance-form" method="POST" action="/events/{{ $event->id }}/attendance/complete">
+                @csrf
+                
+                <!-- Hidden input lưu mã QR từ camera/URL -->
+                <input type="hidden" id="code" name="code" value="{{ old('code', $code) }}">
+
+                <!-- Các phương án lấy mã điểm danh khi chưa có mã -->
+                <div id="no-code-options" style="display: {{ empty($code) ? 'block' : 'none' }}; margin-bottom: 20px;">
+                    <p style="font-size: 13.5px; color: #475569; margin-bottom: 16px; line-height: 1.6;">
+                        Cuối sự kiện, BTC sẽ chiếu <strong>mã QR động</strong> lên máy chiếu hội trường. Hãy quét mã đang hiển thị để xác nhận:
+                    </p>
+
+                    <!-- Trạng thái đợt điểm danh -->
+                    @if($hasActiveSession)
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #166534; display: flex; align-items: center; gap: 8px;">
+                            <span style="display: inline-block; width: 8px; height: 8px; background: #16a34a; border-radius: 50%; box-shadow: 0 0 8px #16a34a;"></span>
+                            <strong>BTC mở điểm danh sau khi sự kiện kết thúc. Đợt điểm danh đang mở tại hội trường (hiệu lực trong 10 phút kể từ lúc mở).</strong>
+                        </div>
+                    @else
+                        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #b45309;">
+                            <strong>Chưa có đợt điểm danh nào đang mở</strong> hoặc đợt trước đã hết hạn. Hãy theo dõi máy chiếu khi BTC thông báo mở đợt.
+                        </div>
+                    @endif
+
+                    <!-- Phương án A: Quét trực tiếp bằng Camera trên trình duyệt -->
+                    <div style="border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 18px; text-align: center; background: #ffffff; margin-bottom: 16px;">
+                        <strong style="display: block; font-size: 14px; color: #1e293b; margin-bottom: 6px;">
+                            📷 Quét mã QR bằng Camera
+                        </strong>
+                        <p style="font-size: 12.5px; color: #64748b; margin-bottom: 12px;">
+                            Bật camera và hướng về phía màn chiếu hội trường để nhận mã tự động.
+                        </p>
+                        <button type="button" class="btn secondary" id="btn-toggle-camera" onclick="toggleCameraScanner()">
+                            Bật Camera quét mã ngay
+                        </button>
+
+                        <!-- Khung xem Video Camera -->
+                        <div id="camera-container" style="display: none; margin-top: 16px;">
+                            <video id="qr-video" style="width: 100%; max-height: 260px; border-radius: 12px; background: #000; object-fit: cover;" playsinline></video>
+                            <p id="camera-status" style="font-size: 12px; color: #64748b; margin-top: 8px;">Đang tìm kiếm mã QR...</p>
+                        </div>
+                    </div>
+
+                    <!-- Phương án B: Nhập mã dự phòng (Nếu camera bị lỗi) -->
+                    <details style="font-size: 13px; color: #64748b; text-align: left;">
+                        <summary style="cursor: pointer; font-weight: 600; color: #2563eb; margin-bottom: 8px;">
+                            Nhập hoặc dán mã thủ công (dự phòng sự cố camera)
+                        </summary>
+                        <div style="padding-top: 8px;">
+                            <input type="text" id="manual-code-input" placeholder="Dán mã điểm danh vào đây..." style="font-size: 13px; font-family: monospace;" oninput="onManualInput(this.value)">
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Nút gửi xác nhận -->
+                <button type="submit" id="btn-submit-attendance" class="btn full" style="font-size: 15px; padding: 14px; margin-top: 10px;" {{ empty($code) ? 'disabled' : '' }}>
+                    Xác nhận tôi có mặt cuối sự kiện
+                </button>
+            </form>
+        @endif
+
+        <p class="fine" style="margin-top: 20px; line-height: 1.5;">
+            Lưu ý: Hệ thống chỉ xác nhận cho tài khoản sinh viên đang đăng nhập và có đăng ký chính thức. Mỗi mã QR chỉ có hiệu lực ngắn (15–30 giây). Điểm đề xuất sẽ được người có quyền duyệt chính thức.
+        </p>
+
+        <div style="text-align: center; margin-top: 16px;">
+            <a href="/my-registrations" style="font-size: 13px; font-weight: 600; color: #64748b;">
+                Xem danh sách đăng ký của tôi →
+            </a>
+        </div>
+    </section>
 
         <p class="fine" style="margin-top: 20px; line-height: 1.5;">
             Lưu ý: Hệ thống chỉ xác nhận cho tài khoản sinh viên đang đăng nhập và có đăng ký chính thức. Mỗi mã QR chỉ có hiệu lực ngắn (15–30 giây). Điểm đề xuất sẽ được người có quyền duyệt chính thức.
@@ -154,11 +184,23 @@ function applyCode(code) {
     submitBtn.innerHTML = '✓ Đã nhận mã · Bấm xác nhận ngay';
 }
 
-// 3. Nhập tay thủ công
+// 3. Nhập tay thủ công (Đồng bộ xóa trắng & khóa nút)
 function onManualInput(val) {
-    if (val.trim()) {
-        document.getElementById('code').value = val.trim();
-        document.getElementById('btn-submit-attendance').removeAttribute('disabled');
+    const trimmed = val.trim();
+    const codeInput = document.getElementById('code');
+    const submitBtn = document.getElementById('btn-submit-attendance');
+    if (codeInput) codeInput.value = trimmed;
+
+    if (submitBtn) {
+        if (trimmed) {
+            submitBtn.removeAttribute('disabled');
+            submitBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            submitBtn.innerHTML = '✓ Đã nhập mã · Bấm xác nhận ngay';
+        } else {
+            submitBtn.setAttribute('disabled', 'disabled');
+            submitBtn.style.background = '';
+            submitBtn.innerHTML = 'Xác nhận tôi có mặt cuối sự kiện';
+        }
     }
 }
 

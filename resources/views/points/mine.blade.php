@@ -189,7 +189,8 @@
         <!-- BẢNG LỊCH SỬ GHI NHẬN & GIẢI TRÌNH ĐIỂM THỰC NHẬN -->
         <h3 style="font-size: 16px; margin-bottom: 12px; color: #334155;">Lịch sử hoạt động & Giải trình điểm thực nhận</h3>
         
-        <div class="table-wrap">
+        <!-- Bảng hiển thị trên Desktop & Tablet -->
+        <div class="table-wrap table-desktop-only">
             <table style="background: white; border-radius: 8px; overflow: hidden;">
                 <thead>
                     <tr>
@@ -216,11 +217,17 @@
                                 <td>
                                     <span class="badge blue" style="font-size: 10.5px;">{{ $item->criteria->code }}</span>
                                 </td>
-                                <td>{{ $item->event->starts_at->format('d/m/Y H:i') }}</td>
+                                <td>{{ $item->event->starts_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}</td>
                                 <td>
-                                    <strong style="color: {{ $item->status === 'approved' ? '#15803d' : '#b91c1c' }}; font-size: 15px;">
-                                        +{{ $item->points }} đ
-                                    </strong>
+                                    @if($item->status === 'approved')
+                                        <strong style="color: #15803d; font-size: 15px;">
+                                            +{{ $item->points }} đ
+                                        </strong>
+                                    @else
+                                        <strong style="color: #b91c1c; font-size: 14px;">
+                                            0 đ <span style="font-size: 11px; font-weight: normal; display: block; color: #dc2626;">(Thu hồi {{ $item->points }}đ)</span>
+                                        </strong>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($item->status === 'approved')
@@ -261,7 +268,7 @@
                                 <td>
                                     <span class="badge blue" style="font-size: 10.5px;">{{ $pItem->event->criteria->code }}</span>
                                 </td>
-                                <td>{{ $pItem->event->starts_at->format('d/m/Y H:i') }}</td>
+                                <td>{{ $pItem->event->starts_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}</td>
                                 <td>
                                     <strong style="color: #d97706; font-size: 15px;">
                                         +{{ $pItem->event->proposed_points }} đ
@@ -271,7 +278,7 @@
                                     <span class="badge warning">Chờ BTC duyệt</span>
                                 </td>
                                 <td>
-                                    <small style="color: #d97706;">Đã quét QR cuối sự kiện lúc {{ $pItem->completed_at->format('H:i d/m/Y') }}. Đang trong quy trình đối soát.</small>
+                                    <small style="color: #d97706;">Đã quét QR cuối sự kiện lúc {{ $pItem->completed_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') }}. Đang trong quy trình đối soát.</small>
                                 </td>
                             </tr>
                         @endforeach
@@ -286,6 +293,68 @@
                     @endif
                 </tbody>
             </table>
+        </div>
+
+        <!-- Dạng thẻ hiển thị trên Mobile (Responsive Card View) -->
+        <div class="cards-mobile-only">
+            @php $hasMobileRows = false; @endphp
+            @foreach($data['by_criteria'] as $cGroup)
+                @foreach($cGroup['items'] as $item)
+                    @php $hasMobileRows = true; @endphp
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
+                            <a href="/events/{{ $item->event_id }}" style="font-weight: 700; color: #1e40af; font-size: 14px; line-height: 1.35;">
+                                {{ $item->event->title }}
+                            </a>
+                            <span class="badge blue" style="font-size: 10px; flex-shrink: 0;">{{ $item->criteria->code }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12.5px;">
+                            <span style="color: #64748b;">{{ $item->event->starts_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}</span>
+                            @if($item->status === 'approved')
+                                <strong style="color: #15803d; font-size: 15px;">+{{ $item->points }} đ</strong>
+                            @else
+                                <strong style="color: #b91c1c; font-size: 13px;">0 đ (Thu hồi)</strong>
+                            @endif
+                        </div>
+                        <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+                            @if($item->status === 'approved')
+                                <span class="badge green" style="font-size: 11px;">Đã duyệt</span>
+                            @else
+                                <span class="badge danger" style="font-size: 11px;">Đã thu hồi</span>
+                            @endif
+                            @if($item->capping_note)
+                                <small style="color: #b45309; font-size: 11px;">🔒 {{ $item->capping_note }}</small>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+
+                @foreach($cGroup['pending_items'] as $pItem)
+                    @php $hasMobileRows = true; @endphp
+                    <div style="background: #fafaf9; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 14px 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
+                            <a href="/events/{{ $pItem->event_id }}" style="font-weight: 600; color: #334155; font-size: 14px;">
+                                {{ $pItem->event->title }}
+                            </a>
+                            <span class="badge blue" style="font-size: 10px; flex-shrink: 0;">{{ $pItem->event->criteria->code }}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12.5px;">
+                            <span style="color: #64748b;">{{ $pItem->event->starts_at->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i') }}</span>
+                            <strong style="color: #d97706; font-size: 15px;">+{{ $pItem->event->proposed_points }} đ</strong>
+                        </div>
+                        <div style="margin-top: 6px;">
+                            <span class="badge warning" style="font-size: 11px;">Chờ BTC duyệt</span>
+                            <small style="color: #d97706; font-size: 11px; display: block; margin-top: 4px;">Đã quét QR lúc {{ $pItem->completed_at->timezone('Asia/Ho_Chi_Minh')->format('H:i d/m/Y') }}.</small>
+                        </div>
+                    </div>
+                @endforeach
+            @endforeach
+
+            @if(!$hasMobileRows)
+                <div style="text-align: center; color: #94a3b8; padding: 20px; background: white; border-radius: 10px;">
+                    Chưa có hoạt động nào trong học kỳ này.
+                </div>
+            @endif
         </div>
     </div>
 @empty

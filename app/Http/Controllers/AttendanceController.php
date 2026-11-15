@@ -73,11 +73,15 @@ class AttendanceController extends Controller
         );
 
         $session = $this->service->current($event);
+        $completion = \App\Models\EventCompletion::where('event_id', $event->id)
+            ->where('user_id', $request->user()->id)
+            ->first();
 
         // Máy chủ KHÔNG tự sinh hoặc phản hồi token trong HTML. Token chỉ được nạp từ client
         // qua quét camera trực tiếp hoặc trích xuất từ URL Fragment (#code=).
         return response()->view('attendance.confirm', [
             'event' => $event,
+            'completion' => $completion,
             'code' => '',
             'hasActiveSession' => $session?->active() ?? false,
         ])->withHeaders([

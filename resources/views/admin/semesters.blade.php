@@ -15,24 +15,24 @@
 
 <div class="detail">
     <section class="panel">
-        <h2>Thêm mới / Cập nhật Học kỳ</h2>
+        <h2>Thêm mới Học kỳ</h2>
         <form method="POST" action="/admin/semesters">
             @csrf
 
             <label>Mã học kỳ (Code duy nhất):
-                <input type="text" name="code" placeholder="VD: 2026_HK1" required maxlength="30">
+                <input type="text" name="code" value="{{ old('code') }}" placeholder="VD: 2026_HK1" required maxlength="30">
             </label>
 
             <label>Tên học kỳ:
-                <input type="text" name="name" placeholder="VD: Học kỳ 1 (Năm học 2026 - 2027)" required maxlength="100">
+                <input type="text" name="name" value="{{ old('name') }}" placeholder="VD: Học kỳ 1 (Năm học 2026 - 2027)" required maxlength="100">
             </label>
 
             <div class="two">
                 <label>Ngày bắt đầu:
-                    <input type="date" name="starts_at" required>
+                    <input type="date" name="starts_at" value="{{ old('starts_at') }}" required>
                 </label>
                 <label>Ngày kết thúc:
-                    <input type="date" name="ends_at" required>
+                    <input type="date" name="ends_at" value="{{ old('ends_at') }}" required>
                 </label>
             </div>
 

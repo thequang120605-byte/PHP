@@ -96,7 +96,7 @@ class DisputeController extends Controller
             $query->where('event_id', $eventId);
         }
 
-        $disputes = $query->paginate(20);
+        $disputes = $query->paginate(20)->withQueryString();
         $events = $user->role === 'admin'
             ? Event::orderBy('id', 'desc')->get()
             : Event::whereIn('id', $staffEventIds)->orderBy('id', 'desc')->get();

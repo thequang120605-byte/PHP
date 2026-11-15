@@ -34,7 +34,7 @@ class UserManagementController extends Controller
             $query->where('is_active', $status === 'active');
         }
 
-        $users = $query->paginate(20);
+        $users = $query->paginate(20)->withQueryString();
 
         return view('admin.users', compact('users', 'q', 'role', 'status'));
     }
