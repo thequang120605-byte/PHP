@@ -2370,3 +2370,351 @@ select:focus-visible {
   background: #2563eb;
   color: #ffffff;
 }
+
+/* ==========================================================================
+   PORTAL ENHANCEMENTS (Modern University Web Portal Styling)
+   ========================================================================== */
+.hero-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 6px 14px;
+  border-radius: 9999px;
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  backdrop-filter: blur(8px);
+}
+.hero-badge-pill .pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: pulse-dot-anim 1.8s infinite;
+}
+@keyframes pulse-dot-anim {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+.btn-hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+.btn-hero-secondary:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.hero-highlights {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.hero-highlight-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #cbd5e1;
+  background: rgba(15, 23, 42, 0.35);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.live-pulse-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  margin-right: 5px;
+  animation: pulse-dot-anim 1.8s infinite;
+}
+
+.card-criteria-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+/* ==========================================================================
+   PORTAL PROCESS STEPS (Quy trình 4 bước sinh viên)
+   ========================================================================== */
+.portal-section {
+  margin: 48px 0 32px 0;
+}
+.portal-section-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.portal-section-header .eyebrow {
+  display: inline-block;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.portal-section-header h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+.portal-section-header p {
+  font-size: 14.5px;
+  color: #64748b;
+  margin: 0;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.portal-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.portal-step-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px 18px;
+  position: relative;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+}
+.portal-step-card:hover {
+  transform: translateY(-3px);
+  border-color: #93c5fd;
+  box-shadow: 0 12px 24px -4px rgba(37, 99, 235, 0.1);
+}
+.portal-step-card .step-order {
+  font-size: 26px;
+  font-weight: 900;
+  color: #e2e8f0;
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  line-height: 1;
+}
+.portal-step-card:hover .step-order {
+  color: #bfdbfe;
+}
+.portal-step-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.portal-step-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.portal-step-card h4 {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+.portal-step-card p {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ==========================================================================
+   PORTAL SUPPORT & CRITERIA INFO BANNER
+   ========================================================================== */
+.portal-support-banner {
+  background: linear-gradient(135deg, #0f2b5c 0%, #1e3a8a 50%, #1d4ed8 100%);
+  border-radius: 20px;
+  padding: 32px;
+  color: #ffffff;
+  margin: 40px 0 20px 0;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 32px;
+  align-items: center;
+  box-shadow: 0 12px 32px -4px rgba(15, 43, 92, 0.25);
+}
+.portal-support-left h3 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  color: #ffffff;
+}
+.portal-support-left p {
+  font-size: 14px;
+  color: #bfdbfe;
+  line-height: 1.6;
+  margin: 0 0 18px 0;
+}
+.portal-support-badges {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.portal-support-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.portal-support-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 22px;
+  backdrop-filter: blur(10px);
+}
+.portal-support-card h5 {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 14px 0;
+  color: #93c5fd;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.portal-support-card .info-line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.portal-support-card .info-line:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.portal-support-card .info-line span:first-child {
+  color: #bfdbfe;
+}
+.portal-support-card .info-line span:last-child,
+.portal-support-card .info-line a {
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.portal-support-card .info-line a:hover {
+  text-decoration: underline;
+  color: #67e8f9;
+}
+
+/* ==========================================================================
+   PORTAL FOOTER
+   ========================================================================== */
+.portal-footer {
+  margin-top: 48px;
+  padding: 28px 0 36px 0;
+  border-top: 1.5px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+.portal-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.portal-footer-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+.portal-footer-links {
+  display: flex;
+  gap: 18px;
+}
+.portal-footer-links a {
+  color: #475569;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+.portal-footer-links a:hover {
+  color: #2563eb;
+}
+
+@media (max-width: 900px) {
+  .portal-steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .portal-support-banner {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 24px;
+  }
+}
+
+@media (max-width: 580px) {
+  .portal-steps-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-hero-secondary {
+    justify-content: center;
+  }
+}

@@ -4,15 +4,55 @@
 <!-- Banner lớn (Hero Section - Deep Navy to Cyan Gradient + 3D Glass Card) -->
 <section class="hero">
     <div class="hero-content">
-        <small>TRƯỜNG ĐẠI HỌC CÔNG THƯƠNG TP. HỒ CHÍ MINH · HUIT EVENTPASS</small>
+        <div class="hero-badge-pill">
+            <span class="pulse-dot"></span>
+            <span>Học kỳ II · 2025-2026 · Đại học Công Thương TP.HCM</span>
+        </div>
         <h1>Hành trình sinh viên<br>bắt đầu từ một hoạt động.</h1>
-        <p>Khám phá các chuyên đề học thuật, workshop kỹ năng và chiến dịch tình nguyện.<br>Đăng ký giữ chỗ minh bạch, xác nhận QR khép kín và tích lũy điểm rèn luyện.</p>
-        <a class="btn-hero" href="#events">
-            Khám phá sự kiện ngay
-            <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
-            </svg>
-        </a>
+        <p>Khám phá các chuyên đề học thuật, ngày hội công nghệ, giải đấu thể thao và chiến dịch tình nguyện.<br>Đăng ký giữ chỗ minh bạch, xác nhận QR khép kín và tích lũy điểm rèn luyện chính thức.</p>
+        
+        <div class="hero-actions">
+            <a class="btn-hero" href="#events">
+                Khám phá sự kiện ngay
+                <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+                </svg>
+            </a>
+            @auth
+                <a class="btn-hero-secondary" href="/my-points">
+                    📊 Bảng tiến độ ĐRL
+                    <svg style="width: 15px; height: 15px;" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
+                    </svg>
+                </a>
+            @else
+                <a class="btn-hero-secondary" href="/login">
+                    🔑 Đăng nhập MSSV
+                    <svg style="width: 15px; height: 15px;" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                </a>
+            @endauth
+        </div>
+
+        <div class="hero-highlights">
+            <div class="hero-highlight-item">
+                <span>🎯</span>
+                <span>Chuẩn 5 nhóm tiêu chí ĐRL</span>
+            </div>
+            <div class="hero-highlight-item">
+                <span>⚡</span>
+                <span>Điểm danh QR 15s tự đổi</span>
+            </div>
+            <div class="hero-highlight-item">
+                <span>🎫</span>
+                <span>Vé điện tử gắn định danh MSSV</span>
+            </div>
+            <div class="hero-highlight-item">
+                <span>🛡️</span>
+                <span>Chống vượt trần tự động</span>
+            </div>
+        </div>
     </div>
 
     <!-- 3D Glassmorphism Ticket Card -->
@@ -184,8 +224,16 @@
 
             <div class="card-body">
                 <div class="meta">
-                    <span class="badge {{ $e->isOpen() ? 'green' : '' }}">{{ $e->label() }}</span>
-                    <span class="points-chip">⭐ Tối đa {{ $e->proposed_points }} điểm đề xuất</span>
+                    <span class="badge {{ $e->isOpen() ? 'green' : '' }}">
+                        @if($e->isOpen()) <span class="live-pulse-dot"></span> @endif
+                        {{ $e->label() }}
+                    </span>
+                    @if($e->criteria)
+                        <span class="card-criteria-pill" title="{{ $e->criteria->name }}">
+                            🏷️ {{ $e->criteria->code }}
+                        </span>
+                    @endif
+                    <span class="points-chip">+{{ $e->proposed_points }} ĐRL</span>
                 </div>
 
                 <h3><a href="/events/{{ $e->id }}">{{ $e->title }}</a></h3>
@@ -209,7 +257,7 @@
                 <div class="card-foot">
                     <span class="capacity-tag">{{ $e->confirmed_count }}/{{ $e->capacity }} chỗ ({{ $pct }}%)</span>
                     <a class="detail-link" href="/events/{{ $e->id }}">
-                        Chi tiết ↗
+                        {{ $e->isOpen() ? 'Đăng ký giữ chỗ →' : 'Chi tiết ↗' }}
                     </a>
                 </div>
             </div>
@@ -296,6 +344,117 @@
 <div class="pagination">
     {{ $events->links('pagination::simple-default') }}
 </div>
+
+<!-- PHẦN QUY TRÌNH 4 BƯỚC KHÉP KÍN SINH VIÊN -->
+<section class="portal-section">
+    <div class="portal-section-header">
+        <span class="eyebrow">QUY TRÌNH MINH BẠCH</span>
+        <h2>4 Bước Tích Lũy Điểm Rèn Luyện HUIT</h2>
+        <p>Hệ thống tự động hóa khép kín từ giữ chỗ trước sự kiện, điểm danh hiện diện đến duyệt điểm chính thức theo quy chế nhà trường.</p>
+    </div>
+
+    <div class="portal-steps-grid">
+        <div class="portal-step-card">
+            <span class="step-order">01</span>
+            <div class="portal-step-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+                </svg>
+            </div>
+            <h4>Đăng ký & Giữ vé</h4>
+            <p>Chọn sự kiện đúng tiêu chí còn thiếu. Nhận vé điện tử gắn định danh MSSV và thời hạn xác nhận.</p>
+        </div>
+
+        <div class="portal-step-card">
+            <span class="step-order">02</span>
+            <div class="portal-step-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                </svg>
+            </div>
+            <h4>Hiện diện tại sự kiện</h4>
+            <p>Tham gia đúng giờ tại Hội trường C, Tầng 3 Thư viện hoặc Sân trường. Lắng nghe và tiếp thu chuyên đề.</p>
+        </div>
+
+        <div class="portal-step-card">
+            <span class="step-order">03</span>
+            <div class="portal-step-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z" />
+                </svg>
+            </div>
+            <h4>Quét QR phiên động</h4>
+            <p>Cuối sự kiện, BTC mở phiên điểm danh 600s với mã QR tự xoay vòng 15s. Quét nhanh bằng camera điện thoại.</p>
+        </div>
+
+        <div class="portal-step-card">
+            <span class="step-order">04</span>
+            <div class="portal-step-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                </svg>
+            </div>
+            <h4>Duyệt & Bảo lưu ĐRL</h4>
+            <p>Hệ thống tự động cộng điểm theo tiêu chí, bảo vệ trần điểm học kỳ và lưu trữ minh chứng điện tử trọn đời.</p>
+        </div>
+    </div>
+</section>
+
+<!-- BANNER HỖ TRỢ ĐOÀN HỘI VÀ KHIẾU NẠI -->
+<div class="portal-support-banner">
+    <div class="portal-support-left">
+        <span class="eyebrow" style="color: #67e8f9;">KÊNH HỖ TRỢ TRỰC TIẾP</span>
+        <h3>Đoàn Thanh niên – Hội Sinh viên Trường Đại học Công Thương TP.HCM</h3>
+        <p>HUIT EventPass đồng hành cùng đoàn viên, sinh viên trong suốt quá trình rèn luyện, thi đua Sinh viên 5 Tốt và xét học bổng khuyến khích. Mọi thắc mắc về điểm danh và minh chứng đều được hỗ trợ giải quyết minh bạch.</p>
+        <div class="portal-support-badges">
+            <span class="portal-support-badge">📍 Văn phòng Đoàn - Tòa B</span>
+            <span class="portal-support-badge">⏰ 07:30 – 17:00 (Thứ 2 – Thứ 6)</span>
+            <span class="portal-support-badge">📞 (028) 3816 1673</span>
+        </div>
+    </div>
+
+    <div class="portal-support-card">
+        <h5>
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 16px; height: 16px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+            Thông Tin Nhanh
+        </h5>
+        <div class="info-line">
+            <span>Cơ sở chính:</span>
+            <span>140 Lê Trọng Tấn, Tây Thạnh, Tân Phú</span>
+        </div>
+        <div class="info-line">
+            <span>Hotline hỗ trợ:</span>
+            <a href="tel:02838161673">028 3816 1673</a>
+        </div>
+        <div class="info-line">
+            <span>Email tiếp nhận:</span>
+            <a href="mailto:doanhoi@huit.edu.vn">doanhoi@huit.edu.vn</a>
+        </div>
+        <div class="info-line">
+            <span>Thời hạn khiếu nại:</span>
+            <span>Trong vòng 7 ngày sau kết thúc</span>
+        </div>
+    </div>
+</div>
+
+<!-- PORTAL FOOTER -->
+<footer class="portal-footer">
+    <div class="portal-footer-left">
+        <img class="portal-footer-logo" src="{{ asset('images/logo-huit.png') }}" alt="Logo HUIT">
+        <div>
+            <strong>HUIT EventPass</strong> — Nền tảng quản lý sự kiện và điểm rèn luyện số Trường Đại học Công Thương TP.HCM
+        </div>
+    </div>
+    <div class="portal-footer-links">
+        <a href="/">Trang chủ</a>
+        <a href="/my-registrations">Vé của tôi</a>
+        <a href="/my-points">Tra cứu ĐRL</a>
+        <a href="/my-disputes">Hỗ trợ khiếu nại</a>
+    </div>
+</footer>
 
 <script>
 function switchView(mode) {
