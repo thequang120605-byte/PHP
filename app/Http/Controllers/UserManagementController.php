@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UserManagementController extends Controller
 {
@@ -44,21 +45,33 @@ class UserManagementController extends Controller
             return back()->withErrors(['user' => 'Không thể tự khóa tài khoản của chính mình.']);
         }
 
-        $oldStatus = $user->is_active;
-        $newStatus = ! $oldStatus;
-        $user->update(['is_active' => $newStatus]);
+        $newStatus = DB::transaction(function () use ($user, $r) {
+            $lockedUser = User::lockForUpdate()->findOrFail($user->id);
+            if ($lockedUser->id === $r->user()->id) {
+                return false;
+            }
 
-        AuditLog::create([
-            'actor_id' => $r->user()->id,
-            'action' => $newStatus ? 'user.unlocked' : 'user.locked',
-            'entity_type' => 'user',
-            'entity_id' => $user->id,
-            'payload' => [
-                'target_email' => $user->email,
-                'target_student_code' => $user->student_code,
-                'is_active' => $newStatus,
-            ],
-        ]);
+            // Hỗ trợ truyền trạng thái đích xác định (target_status) hoặc đảo trạng thái nguyên tử
+            $targetStatus = $r->has('target_status')
+                ? filter_var($r->input('target_status'), FILTER_VALIDATE_BOOLEAN)
+                : ! $lockedUser->is_active;
+
+            $lockedUser->update(['is_active' => $targetStatus]);
+
+            AuditLog::create([
+                'actor_id' => $r->user()->id,
+                'action' => $targetStatus ? 'user.unlocked' : 'user.locked',
+                'entity_type' => 'user',
+                'entity_id' => $lockedUser->id,
+                'payload' => [
+                    'target_email' => $lockedUser->email,
+                    'target_student_code' => $lockedUser->student_code,
+                    'is_active' => $targetStatus,
+                ],
+            ]);
+
+            return $targetStatus;
+        });
 
         $msg = $newStatus ? "Đã mở khóa tài khoản {$user->name}." : "Đã khóa tài khoản {$user->name}.";
 

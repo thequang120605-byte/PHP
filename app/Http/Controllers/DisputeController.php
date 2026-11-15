@@ -64,24 +64,42 @@ class DisputeController extends Controller
     }
 
     /**
-     * Màn hình quản trị tiếp nhận phản hồi sai sót (Admin / BTC)
+     * Màn hình quản trị tiếp nhận phản hồi sai sót (Admin / Nhân sự Approver / Manager)
      */
     public function adminIndex(Request $r)
     {
+        $user = $r->user();
+        $staffEventIds = collect();
+        if ($user->role !== 'admin') {
+            $staffEventIds = \App\Models\EventStaff::where('user_id', $user->id)
+                ->whereIn('role', ['approver', 'manager'])
+                ->pluck('event_id');
+            abort_if($staffEventIds->isEmpty(), 403);
+        }
+
         $status = $r->input('status');
         $eventId = $r->input('event_id');
 
         $query = Dispute::with(['event', 'user', 'registration', 'handler'])->latest('id');
 
+        if ($user->role !== 'admin') {
+            $query->whereIn('event_id', $staffEventIds);
+        }
+
         if ($status) {
             $query->where('status', $status);
         }
         if ($eventId) {
+            if ($user->role !== 'admin' && ! $staffEventIds->contains((int) $eventId)) {
+                abort(403);
+            }
             $query->where('event_id', $eventId);
         }
 
         $disputes = $query->paginate(20);
-        $events = Event::orderBy('id', 'desc')->get();
+        $events = $user->role === 'admin'
+            ? Event::orderBy('id', 'desc')->get()
+            : Event::whereIn('id', $staffEventIds)->orderBy('id', 'desc')->get();
 
         return view('admin.disputes', compact('disputes', 'events', 'status', 'eventId'));
     }
@@ -91,6 +109,8 @@ class DisputeController extends Controller
      */
     public function process(Request $r, Dispute $dispute)
     {
+        abort_unless($r->user()->is_active && $dispute->event->hasStaffRole($r->user(), ['approver', 'manager']), 403);
+
         $r->validate([
             'status' => 'required|in:pending,in_review,resolved,rejected',
             'resolution_notes' => 'required|string|max:1000',

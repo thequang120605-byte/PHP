@@ -26,10 +26,19 @@ class PrivatizeEvidence extends Command
                     $this->error('Xung đột file '.$p);
 
                     return 1;
-                }Storage::disk('local')->put($p, $bytes);
+                }
+                Storage::disk('local')->put($p, $bytes);
                 if (hash('sha256', Storage::disk('local')->get($p)) !== hash('sha256', $bytes)) {
+                    $this->error('Lỗi toàn vẹn dữ liệu khi ghi sang disk local: '.$p);
+
                     return 1;
-                }Storage::disk('public')->delete($p);
+                }
+                $deleted = Storage::disk('public')->delete($p);
+                if (! $deleted || Storage::disk('public')->exists($p)) {
+                    $this->error('Lỗi nghiêm trọng: Không thể xóa file public cũ sau khi copy sang local: '.$p);
+
+                    return 1;
+                }
                 $count++;
             }
         }$this->info('Đã chuyển '.$count.' file; giữ nguyên đường dẫn trong CSDL.');

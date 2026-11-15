@@ -13,13 +13,20 @@ use Illuminate\Support\Str;
 
 class BenchmarkLoadTestCommand extends Command
 {
-    protected $signature = 'test:load-benchmark {--records=5000 : Số lượng hồ sơ cần giả lập đo đạc} {--concurrency=50 : Số lượt đăng ký đồng thời}';
-    protected $description = 'Kiểm thử tải tăng dần và đo hiệu năng MySQL đồng thời (Capacity Concurrency Lock & 40,000 Records Benchmark)';
+    protected $signature = 'test:load-benchmark {--records=5000 : Số lượng hồ sơ cần giả lập đo đạc} {--concurrency=50 : Số lượt đăng ký thử nghiệm} {--keep-data : Giữ lại dữ liệu test sau khi đo}';
+    protected $description = 'Kiểm thử tải tăng dần và đo hiệu năng MySQL đồng thời (Capacity Concurrency Lock & Records Benchmark)';
 
     public function handle(RegistrationService $service): int
     {
+        if (app()->isProduction()) {
+            $this->error('Lệnh benchmark tải không được phép chạy trên môi trường Production.');
+
+            return self::FAILURE;
+        }
+
         $recordsCount = (int) $this->option('records');
         $concurrency = (int) $this->option('concurrency');
+        $keepData = (bool) $this->option('keep-data');
 
         $this->info("===============================================================================");
         $this->info("   HUIT EVENTS — KIỂM THỬ TẢI & ĐỒNG THỜI (BENCHMARK)");
@@ -139,24 +146,45 @@ class BenchmarkLoadTestCommand extends Command
         $this->newLine();
 
         // 3. Benchmark Query: Index lookup và Phân trang trên tập dữ liệu lớn
-        $this->info("[PHẦN 3] Đo đạc tốc độ truy vấn Index (B-Tree) trên tập dữ liệu vừa tạo:");
-        $queryStart = microtime(true);
+        $this->info("[PHẦN 3] Đo đạc tốc độ truy vấn Index (B-Tree) thực tế trên CSDL:");
+        
+        $t0 = microtime(true);
         $totalUsers = DB::table('users')->count();
-        $sampleCode = "SIM000" . str_pad((string) rand(100, 900), 4, '0', STR_PAD_LEFT);
+        $msCount = round((microtime(true) - $t0) * 1000, 2);
+
+        $sampleCode = "SIM" . str_pad((string) rand(1, min($recordsCount, 1000)), 7, '0', STR_PAD_LEFT);
+        $t1 = microtime(true);
         $userFound = DB::table('users')->where('student_code', $sampleCode)->first();
+        $msLookup = round((microtime(true) - $t1) * 1000, 2);
+
+        $t2 = microtime(true);
         $page1 = DB::table('users')->orderBy('id', 'desc')->limit(20)->get();
-        $page500 = DB::table('users')->orderBy('id', 'desc')->offset(10000)->limit(20)->get();
-        $queryDuration = (microtime(true) - $queryStart) * 1000;
+        $msPage1 = round((microtime(true) - $t2) * 1000, 2);
+
+        $offset = min(10000, max(0, $recordsCount - 25));
+        $t3 = microtime(true);
+        $pageDeep = DB::table('users')->orderBy('id', 'desc')->offset($offset)->limit(20)->get();
+        $msPageDeep = round((microtime(true) - $t3) * 1000, 2);
 
         $this->table(
-            ['Thao tác CSDL', 'Thời gian phản hồi', 'Ghi chú tối ưu'],
+            ['Thao tác CSDL', 'Thời gian phản hồi thực tế (ms)', 'Ghi chú kỹ thuật'],
             [
-                ['Đếm tổng số bản ghi (COUNT)', '< 15 ms', 'InnoDB stats'],
-                ["Tra cứu Index MSSV ({$sampleCode})", '< 1.5 ms', 'Unique B-Tree Index'],
-                ['Phân trang trang đầu (LIMIT 20)', '< 2.0 ms', 'Primary Key Scan'],
-                ['Phân trang trang sâu (OFFSET 10000)', '< 8.0 ms', 'Indexed Offset'],
+                ['Đếm tổng số bản ghi (COUNT)', "{$msCount} ms", 'InnoDB Index Scan'],
+                ["Tra cứu Unique Index MSSV ({$sampleCode})", "{$msLookup} ms", 'B-Tree Unique Look-up'],
+                ['Phân trang trang đầu (LIMIT 20)', "{$msPage1} ms", 'Index Scan Desc'],
+                ["Phân trang trang sâu (OFFSET {$offset})", "{$msPageDeep} ms", 'Indexed Offset'],
             ]
         );
+
+        if (! $keepData) {
+            $this->newLine();
+            $this->line("• Đang dọn dẹp các bản ghi giả lập benchmark...");
+            DB::table('users')->where('email', 'like', 'scale_%@huit.test')->delete();
+            DB::table('users')->where('email', 'like', 'concurrent_%@huit.test')->delete();
+            $event->registrations()->delete();
+            $event->delete();
+            $this->info("✔ Đã dọn dẹp xong dữ liệu tạm sau kiểm thử.");
+        }
 
         $this->newLine();
         $this->info("===============================================================================");

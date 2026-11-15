@@ -38,11 +38,13 @@ Route::middleware('active')->group(function () {
         // Điểm rèn luyện của sinh viên
         Route::get('/my-points', [PointController::class, 'myPoints']);
 
-        // Phản hồi sai sót & khiếu nại (Sinh viên)
+        // Phản hồi sai sót & khiếu nại (Sinh viên & Staff/Admin xử lý)
         Route::get('/disputes/{dispute}/evidence', [DisputeController::class, 'evidence']);
         Route::get('/my-disputes', [DisputeController::class, 'myDisputes']);
         Route::get('/events/{event}/disputes/create', [DisputeController::class, 'create']);
         Route::post('/events/{event}/disputes', [DisputeController::class, 'store']);
+        Route::get('/disputes', [DisputeController::class, 'adminIndex']);
+        Route::post('/disputes/{dispute}/process', [DisputeController::class, 'process']);
 
         // Điểm danh (Staff hoặc Admin)
         Route::get('/events/{event}/attendance/scan', [AttendanceController::class, 'showScanPage']);
@@ -107,10 +109,6 @@ Route::middleware('active')->group(function () {
         Route::post('/events/{event}/import/preview', [ImportExportController::class, 'previewImport']);
         Route::post('/events/{event}/import/commit', [ImportExportController::class, 'commitImport']);
         Route::get('/events/{event}/export-reconciliation', [ImportExportController::class, 'exportReconciliation'])->middleware('throttle:6,1');
-
-        // Phản hồi sai sót & Đối soát
-        Route::get('/disputes', [DisputeController::class, 'adminIndex']);
-        Route::post('/disputes/{dispute}/process', [DisputeController::class, 'process']);
 
         // Quản lý người dùng & Khóa tài khoản
         Route::get('/users', [UserManagementController::class, 'index']);

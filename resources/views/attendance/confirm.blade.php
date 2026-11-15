@@ -117,22 +117,27 @@
 </div>
 
 <script>
-// 1. Kiểm tra mã từ URL query hoặc hash
+// 1. Kiểm tra mã từ URL hash fragment (#code=)
 function checkUrlCode() {
     let code = '';
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('code')) {
-        code = urlParams.get('code');
-    }
-    if (!code && window.location.hash) {
+    // Ưu tiên đọc từ URL Hash Fragment (#code=...) để không lộ mã vào Server Access Logs
+    if (window.location.hash) {
         const hashParams = new URLSearchParams(window.location.hash.slice(1));
         if (hashParams.get('code')) {
             code = hashParams.get('code');
         }
     }
+    // Hỗ trợ ngược query param nếu có
+    if (!code) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('code')) {
+            code = urlParams.get('code');
+        }
+    }
     
     if (code) {
         applyCode(code);
+        // Xóa ngay mã khỏi thanh địa chỉ URL để tránh lộ khi copy link
         history.replaceState(null, '', window.location.pathname);
     }
 }

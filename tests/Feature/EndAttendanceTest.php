@@ -412,4 +412,52 @@ class EndAttendanceTest extends TestCase
 
         $response->assertStatus(403);
     }
+
+    public function test_confirm_page_does_not_echo_query_code(): void
+    {
+        [$e, $a, $u] = $this->setupEvent();
+        $fakeCode = 'FAKE_LEAKED_TOKEN_12345';
+
+        $response = $this->actingAs($u)->get('/events/'.$e->id.'/attendance/confirm?code='.$fakeCode);
+
+        $response->assertOk();
+        // Server does NOT echo the query parameter in the form input value
+        $response->assertDontSee('value="'.$fakeCode.'"', false);
+    }
+
+    public function test_assigned_staff_can_access_and_process_disputes(): void
+    {
+        [$e, $a, $u, $r] = $this->setupEvent();
+        $staffUser = $this->user();
+        EventStaff::create([
+            'event_id' => $e->id,
+            'user_id' => $staffUser->id,
+            'role' => 'approver',
+            'assigned_by' => $a->id,
+        ]);
+
+        $ticket = app(\App\Services\DisputeService::class)->createTicket(
+            $u,
+            $e,
+            ['type' => 'missing_attendance', 'description' => 'Em có tham gia']
+        );
+
+        // Staff with approver role can view disputes
+        $this->actingAs($staffUser)->get('/disputes')->assertOk();
+
+        // Staff can review and resolve dispute
+        $res = $this->actingAs($staffUser)->post('/disputes/'.$ticket->id.'/process', [
+            'status' => 'resolved',
+            'resolution_notes' => 'Đã xác minh qua video hội trường',
+        ]);
+        $res->assertRedirect();
+        $this->assertSame('resolved', $ticket->fresh()->status);
+
+        // Staff cannot arbitrarily change closed dispute back to pending
+        $this->actingAs($staffUser)->post('/disputes/'.$ticket->id.'/process', [
+            'status' => 'pending',
+            'resolution_notes' => 'Mở lại',
+        ]);
+        $this->assertSame('resolved', $ticket->fresh()->status);
+    }
 }

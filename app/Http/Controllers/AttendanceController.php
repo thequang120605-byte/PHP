@@ -48,7 +48,9 @@ class AttendanceController extends Controller
             return response()->json(['active' => false])->header('Cache-Control', 'no-store');
         }
         $payload = $this->service->payload($s);
-        $url = url('/events/'.$event->id.'/attendance/confirm').'?code='.$payload.'#code='.$payload;
+        // An toàn: Token chỉ truyền qua URL Fragment (#code=), không gửi qua Query String (?code=)
+        // để tuyệt đối không lưu vết vào web server access logs, reverse proxy hoặc header Referer.
+        $url = url('/events/'.$event->id.'/attendance/confirm').'#code='.$payload;
 
         return response()->json(['active' => true, 'svg' => QrService::svg($url, 340), 'expires_at' => $s->expires_at->toIso8601String(), 'server_now' => now()->toIso8601String()])->withHeaders(['Cache-Control' => 'no-store, private', 'Referrer-Policy' => 'no-referrer']);
     }
@@ -70,15 +72,13 @@ class AttendanceController extends Controller
             403
         );
 
-        $data = $request->validate([
-            'code' => ['nullable', 'string', 'max:150'],
-        ]);
-
         $session = $this->service->current($event);
 
+        // Máy chủ KHÔNG tự sinh hoặc phản hồi token trong HTML. Token chỉ được nạp từ client
+        // qua quét camera trực tiếp hoặc trích xuất từ URL Fragment (#code=).
         return response()->view('attendance.confirm', [
             'event' => $event,
-            'code' => $data['code'] ?? '',
+            'code' => '',
             'hasActiveSession' => $session?->active() ?? false,
         ])->withHeaders([
             'Cache-Control' => 'no-store, private',

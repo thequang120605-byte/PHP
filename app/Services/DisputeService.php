@@ -78,6 +78,17 @@ class DisputeService
                 $this->fail('Trạng thái xử lý không hợp lệ.');
             }
 
+            // Chống Race Condition & Kiểm soát chuyển trạng thái:
+            // Nếu ticket đã đóng (resolved hoặc rejected), không cho phép nhân sự thường đảo ngược trạng thái tùy tiện
+            if (in_array($dispute->status, ['resolved', 'rejected'])) {
+                if ($dispute->status === $status) {
+                    return $dispute;
+                }
+                if ($handler->role !== 'admin') {
+                    $this->fail("Yêu cầu phản hồi này đã được chốt kết quả '{$dispute->status}'. Không thể thay đổi trạng thái.");
+                }
+            }
+
             $resolutionNotes = trim($resolutionNotes);
             if (! $resolutionNotes) {
                 $this->fail('Vui lòng nhập ghi chú kết quả giải quyết khi phản hồi sinh viên.');

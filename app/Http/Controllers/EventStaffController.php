@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\EventStaff;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EventStaffController extends Controller
 {
@@ -31,21 +32,23 @@ class EventStaffController extends Controller
         $userId = $r->input('user_id');
         $role = $r->input('role');
 
-        $staff = EventStaff::firstOrCreate(
-            ['event_id' => $event->id, 'user_id' => $userId, 'role' => $role],
-            ['assigned_by' => $r->user()->id]
-        );
+        DB::transaction(function () use ($event, $userId, $role, $r) {
+            EventStaff::firstOrCreate(
+                ['event_id' => $event->id, 'user_id' => $userId, 'role' => $role],
+                ['assigned_by' => $r->user()->id]
+            );
 
-        AuditLog::create([
-            'actor_id' => $r->user()->id,
-            'action' => 'staff.assigned',
-            'entity_type' => 'event',
-            'entity_id' => $event->id,
-            'payload' => [
-                'target_user_id' => $userId,
-                'role' => $role,
-            ],
-        ]);
+            AuditLog::create([
+                'actor_id' => $r->user()->id,
+                'action' => 'staff.assigned',
+                'entity_type' => 'event',
+                'entity_id' => $event->id,
+                'payload' => [
+                    'target_user_id' => $userId,
+                    'role' => $role,
+                ],
+            ]);
+        });
 
         return back()->with('success', 'Đã phân công nhân sự thành công.');
     }
@@ -55,18 +58,20 @@ class EventStaffController extends Controller
         $eventId = $staff->event_id;
         $staffUser = $staff->user;
 
-        $staff->delete();
+        DB::transaction(function () use ($staff, $eventId, $staffUser, $r) {
+            $staff->delete();
 
-        AuditLog::create([
-            'actor_id' => $r->user()->id,
-            'action' => 'staff.removed',
-            'entity_type' => 'event',
-            'entity_id' => $eventId,
-            'payload' => [
-                'user' => $staffUser->name,
-                'role' => $staff->role,
-            ],
-        ]);
+            AuditLog::create([
+                'actor_id' => $r->user()->id,
+                'action' => 'staff.removed',
+                'entity_type' => 'event',
+                'entity_id' => $eventId,
+                'payload' => [
+                    'user' => $staffUser->name ?? 'N/A',
+                    'role' => $staff->role,
+                ],
+            ]);
+        });
 
         return back()->with('success', 'Đã gỡ quyền nhân sự khỏi sự kiện.');
     }
