@@ -36,7 +36,7 @@
             </button>
         </form>
 
-        <div id="qr" style="margin: 20px auto; max-width: 100%; min-height: 280px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px; padding: 20px;">
+        <div id="qr" style="margin: 20px auto; max-width: 100%; min-height: 280px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px; padding: 20px; transition: opacity 0.4s ease-in-out;">
             <p style="color: #64748b; font-weight: 500;">Đang kiểm tra trạng thái phiên điểm danh...</p>
         </div>
 
@@ -170,13 +170,20 @@
 <script>
 let expiry = 0, offset = 0;
 let slotSeconds = {{ $slotSeconds ?? 120 }};
-let lastFetchTime = Date.now();
-let isRefreshing = false;
+let cycleRemaining = slotSeconds;
+let isFetchingQr = false;
+let isPollingAttendees = false;
 
-async function refresh() {
-    if (isRefreshing) return;
-    isRefreshing = true;
+// 1. Hàm nạp mã QR mới (Chỉ chạy lúc mở trang hoặc khi hết trọn vẹn 2 phút)
+async function fetchNewQr() {
+    if (isFetchingQr) return;
+    isFetchingQr = true;
+    const qrBox = document.getElementById('qr');
+    
     try {
+        // Hiệu ứng mờ dần nhẹ nhàng khi chuẩn bị đổi mã
+        qrBox.style.opacity = '0.35';
+
         const res = await fetch('/events/{{ $event->id }}/attendance/qr', {
             headers: { Accept: 'application/json' },
             cache: 'no-store'
@@ -185,65 +192,100 @@ async function refresh() {
         const d = await res.json();
         
         if (!d.active) {
-            document.getElementById('qr').innerHTML = '<p style="color: #b45309; font-weight: 600;">Phiên chưa mở, đã đóng hoặc đã hết thời gian hiệu lực.</p>';
+            qrBox.innerHTML = '<p style="color: #b45309; font-weight: 600;">Phiên chưa mở, đã đóng hoặc đã hết thời gian hiệu lực.</p>';
             document.getElementById('deadline').textContent = '';
             document.getElementById('countdown').textContent = '';
             document.getElementById('qr-rotation-timer').style.display = 'none';
             expiry = 0;
+            qrBox.style.opacity = '1';
             return;
         }
         
-        document.getElementById('qr').innerHTML = d.svg;
+        // Cập nhật SVG và làm rõ lại từ từ (êm dịu, không giật màn hình)
+        qrBox.innerHTML = d.svg;
+        setTimeout(() => { qrBox.style.opacity = '1'; }, 60);
+
         expiry = Date.parse(d.expires_at);
         offset = Date.parse(d.server_now) - Date.now();
-        lastFetchTime = Date.now();
         if (d.slot_seconds) slotSeconds = d.slot_seconds;
+
+        // Đồng bộ chuẩn xác thời gian còn lại của chu kỳ 2 phút từ server
+        if (typeof d.seconds_remaining_in_slot !== 'undefined' && d.seconds_remaining_in_slot > 0) {
+            cycleRemaining = d.seconds_remaining_in_slot;
+        } else {
+            cycleRemaining = slotSeconds;
+        }
 
         document.getElementById('deadline').textContent = 'Hạn phiên: ' + new Date(expiry).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' (' + new Date(expiry).toLocaleDateString('vi-VN') + ')';
         document.getElementById('qr-rotation-timer').style.display = 'inline-block';
 
-        // Cập nhật số lượng và danh sách sinh viên quét thời gian thực
-        if (typeof d.scanned_count !== 'undefined') {
-            document.getElementById('scanned-total').textContent = d.scanned_count;
-        }
-        if (d.recent_scans && d.recent_scans.length > 0) {
-            const tbody = document.getElementById('scanned-table-body');
-            const emptyRow = document.getElementById('row-empty');
-            if (emptyRow) emptyRow.remove();
-
-            tbody.innerHTML = d.recent_scans.map(s => `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 10px 12px; color: #64748b; font-variant-numeric: tabular-nums;">${s.time}</td>
-                    <td style="padding: 10px 12px; font-weight: 600; color: #0f172a;">${s.student_code || '---'}</td>
-                    <td style="padding: 10px 12px; color: #0f172a;">${s.name}</td>
-                    <td style="padding: 10px 12px; color: #64748b;">${s.class_name || '---'}</td>
-                    <td style="padding: 10px 12px; text-align: right;">
-                        <span class="badge green" style="font-size: 11px;">Đã quét QR</span>
-                    </td>
-                </tr>
-            `).join('');
-        }
+        renderAttendees(d);
     } catch {
-        document.getElementById('qr').innerHTML = '<p style="color: #dc2626; font-weight: 600;">Không tải được mã. Vui lòng kiểm tra kết nối mạng.</p>';
+        qrBox.innerHTML = '<p style="color: #dc2626; font-weight: 600;">Không tải được mã. Vui lòng kiểm tra kết nối mạng.</p>';
         document.getElementById('deadline').textContent = '';
         document.getElementById('countdown').textContent = '';
         document.getElementById('qr-rotation-timer').style.display = 'none';
         expiry = 0;
+        qrBox.style.opacity = '1';
     } finally {
-        isRefreshing = false;
+        isFetchingQr = false;
     }
 }
 
-refresh();
+// 2. Hàm chỉ cập nhật danh sách sinh viên vừa quét (CHẠY NGẦM, TUYỆT ĐỐI KHÔNG ĐỤNG VÀO MÃ QR VÀ KHÔNG RESET 2 PHÚT)
+async function pollAttendeesOnly() {
+    if (isPollingAttendees || !expiry) return;
+    isPollingAttendees = true;
+    try {
+        const res = await fetch('/events/{{ $event->id }}/attendance/qr?only=attendees', {
+            headers: { Accept: 'application/json' },
+            cache: 'no-store'
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        renderAttendees(d);
+    } catch {
+        // bỏ qua lỗi polling ngầm
+    } finally {
+        isPollingAttendees = false;
+    }
+}
 
-// Đếm ngược tổng thời gian phiên (10 phút) và đếm ngược chu kỳ đổi mã QR (2 phút)
+// Hàm render bảng danh sách sinh viên quét mã
+function renderAttendees(d) {
+    if (typeof d.scanned_count !== 'undefined') {
+        document.getElementById('scanned-total').textContent = d.scanned_count;
+    }
+    if (d.recent_scans && d.recent_scans.length > 0) {
+        const tbody = document.getElementById('scanned-table-body');
+        const emptyRow = document.getElementById('row-empty');
+        if (emptyRow) emptyRow.remove();
+
+        tbody.innerHTML = d.recent_scans.map(s => `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 10px 12px; color: #64748b; font-variant-numeric: tabular-nums;">${s.time}</td>
+                <td style="padding: 10px 12px; font-weight: 600; color: #0f172a;">${s.student_code || '---'}</td>
+                <td style="padding: 10px 12px; color: #0f172a;">${s.name}</td>
+                <td style="padding: 10px 12px; color: #64748b;">${s.class_name || '---'}</td>
+                <td style="padding: 10px 12px; text-align: right;">
+                    <span class="badge green" style="font-size: 11px;">Đã quét QR</span>
+                </td>
+            </tr>
+        `).join('');
+    }
+}
+
+// Nạp mã QR ban đầu
+fetchNewQr();
+
+// 3. Đếm ngược từng giây chuẩn xác (1000ms)
 setInterval(() => {
     if (!expiry) return;
     const now = Date.now();
-    const n = Math.max(0, Math.ceil((expiry - now - offset) / 1000));
-    document.getElementById('countdown').textContent = 'Còn lại phiên: ' + Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+    const sessionRemaining = Math.max(0, Math.ceil((expiry - now - offset) / 1000));
+    document.getElementById('countdown').textContent = 'Còn lại phiên: ' + Math.floor(sessionRemaining / 60) + ':' + String(sessionRemaining % 60).padStart(2, '0');
     
-    if (n === 0) {
+    if (sessionRemaining === 0) {
         document.getElementById('qr').innerHTML = '<p style="color: #dc2626; font-weight: 600;">Đợt điểm danh 10 phút đã hết hạn.</p>';
         document.getElementById('deadline').textContent = '';
         document.getElementById('countdown').textContent = '';
@@ -252,24 +294,20 @@ setInterval(() => {
         return;
     }
 
-    // Đếm ngược 2 phút cho mã QR hiện tại
-    const elapsedInCycle = Math.floor((now - lastFetchTime) / 1000);
-    const cycleRemaining = Math.max(0, slotSeconds - elapsedInCycle);
+    // Đếm ngược đều đặn từng giây cho chu kỳ 2 phút (từ 02:00 -> 00:00)
+    cycleRemaining = Math.max(0, cycleRemaining - 1);
     const mins = Math.floor(cycleRemaining / 60);
     const secs = String(cycleRemaining % 60).padStart(2, '0');
     document.getElementById('cycle-countdown').textContent = `${String(mins).padStart(2, '0')}:${secs}`;
 
-    // Khi hết 2 phút, tự động gọi refresh() để đổi sang mã QR mới
+    // ĐÚNG KHI ĐẾM HẾT 2 PHÚT (VỀ 0) MỚI TỰ ĐỘNG ĐỔI MÃ QR MỚI TỪ TỪ
     if (cycleRemaining === 0) {
-        refresh();
+        cycleRemaining = slotSeconds;
+        fetchNewQr();
     }
 }, 1000);
 
-// Polling định kỳ mỗi 10 giây để cập nhật danh sách sinh viên vừa quét
-setInterval(() => {
-    if (expiry) {
-        refresh();
-    }
-}, 10000);
+// 4. Polling danh sách sinh viên vừa quét mỗi 8 giây (hoàn toàn chạy ngầm)
+setInterval(pollAttendeesOnly, 8000);
 </script>
 @endsection

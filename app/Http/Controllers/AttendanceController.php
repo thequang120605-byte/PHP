@@ -71,10 +71,6 @@ class AttendanceController extends Controller
         if (! $s?->active() || $event->status !== 'published') {
             return response()->json(['active' => false])->header('Cache-Control', 'no-store');
         }
-        $payload = $this->service->payload($s);
-        // An toàn: Token chỉ truyền qua URL Fragment (#code=), không gửi qua Query String (?code=)
-        // để tuyệt đối không lưu vết vào web server access logs, reverse proxy hoặc header Referer.
-        $url = url('/events/'.$event->id.'/attendance/confirm').'#code='.$payload;
 
         $scannedCompletions = \App\Models\EventCompletion::where('event_id', $event->id)
             ->where('method', 'end_qr')
@@ -90,12 +86,31 @@ class AttendanceController extends Controller
             'class_name' => $c->user?->class_name ?? '',
         ]);
 
+        // Nếu client chỉ hỏi danh sách sinh viên vừa quét để cập nhật bảng, không sinh lại QR
+        if ($r->query('only') === 'attendees') {
+            return response()->json([
+                'active' => true,
+                'scanned_count' => \App\Models\EventCompletion::where('event_id', $event->id)->where('method', 'end_qr')->count(),
+                'recent_scans' => $recentList,
+            ])->withHeaders(['Cache-Control' => 'no-store, private']);
+        }
+
+        $slotDuration = \App\Services\AttendanceService::slotDuration();
+        $nowTs = now()->timestamp;
+        $secondsRemainingInSlot = $slotDuration - ($nowTs % $slotDuration);
+
+        $payload = $this->service->payload($s);
+        // An toàn: Token chỉ truyền qua URL Fragment (#code=), không gửi qua Query String (?code=)
+        // để tuyệt đối không lưu vết vào web server access logs, reverse proxy hoặc header Referer.
+        $url = url('/events/'.$event->id.'/attendance/confirm').'#code='.$payload;
+
         return response()->json([
             'active' => true,
             'svg' => QrService::svg($url, 340),
             'expires_at' => $s->expires_at->toIso8601String(),
             'server_now' => now()->toIso8601String(),
-            'slot_seconds' => \App\Services\AttendanceService::slotDuration(),
+            'slot_seconds' => $slotDuration,
+            'seconds_remaining_in_slot' => $secondsRemainingInSlot,
             'scanned_count' => \App\Models\EventCompletion::where('event_id', $event->id)->where('method', 'end_qr')->count(),
             'recent_scans' => $recentList,
         ])->withHeaders(['Cache-Control' => 'no-store, private', 'Referrer-Policy' => 'no-referrer']);
