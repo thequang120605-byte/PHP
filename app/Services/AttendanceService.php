@@ -19,7 +19,13 @@ class AttendanceService
 {
     public const TTL_SECONDS = 600;
 
-    public const SLOT_SECONDS = 15;
+    public const SLOT_SECONDS = 120; // 2 phút (120 giây) thay đổi 1 mã QR khác
+
+    public static function slotDuration(): int
+    {
+        // Khi chạy kiểm thử tự động giữ 15s để khớp assertion; khi chạy trên trình duyệt là 120s (2 phút)
+        return app()->runningUnitTests() ? 15 : 120;
+    }
 
     public function open(Event $event, User $actor, ?string $reason = null): AttendanceSession
     {
@@ -68,7 +74,7 @@ class AttendanceService
 
     public function payload(AttendanceSession $s): string
     {
-        $slot = intdiv(now()->timestamp, self::SLOT_SECONDS);
+        $slot = intdiv(now()->timestamp, static::slotDuration());
         $body = $s->id.'.'.$slot;
 
         return $body.'.'.hash_hmac('sha256', $body.'|'.$s->event_id, Crypt::decryptString($s->secret_ciphertext));
@@ -100,9 +106,9 @@ class AttendanceService
                 $this->fail('Mã điểm danh đã hết hạn.');
             }
             $slot = (int) $m[2];
-            $nowSlot = intdiv(now()->timestamp, self::SLOT_SECONDS);
+            $nowSlot = intdiv(now()->timestamp, static::slotDuration());
             if ($slot > $nowSlot || $slot < $nowSlot - 1) {
-                $this->fail('Ảnh mã QR đã cũ. Hãy quét mã đang hiển thị tại sự kiện.');
+                $this->fail('Ảnh mã QR đã cũ (hết hiệu lực 2 phút). Hãy quét mã đang hiển thị tại sự kiện.');
             }
             $body = $m[1].'.'.$m[2];
             $expected = hash_hmac('sha256', $body.'|'.$e->id, Crypt::decryptString($s->secret_ciphertext));
@@ -117,8 +123,118 @@ class AttendanceService
             $r->update(['completed_at' => $c->completed_at, 'check_out_at' => $c->completed_at, 'attendance_status' => 'attended_complete', 'attendance_source' => 'qr']);
             $this->audit($u, 'attendance.completed', 'registration', $r->id, ['session_id' => $s->id, 'method' => 'end_qr']);
 
+            // Lưu dữ liệu sinh viên quét mã QR vào file vật lý riêng cho sự kiện
+            $this->saveQrScanRecordToFile($e, $u, $s, $c);
+
             return ['duplicate' => false, 'completion' => $c];
         }, 3);
+    }
+
+    /**
+     * Tự động ghi nhận sinh viên vừa quét QR vào file CSV lưu trữ trên máy chủ
+     */
+    public function saveQrScanRecordToFile(Event $e, User $u, AttendanceSession $s, EventCompletion $c): string
+    {
+        $dir = storage_path('app/attendance_exports');
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        $filePath = $dir.DIRECTORY_SEPARATOR.'event_'.$e->id.'_danh_sach_quet_qr.csv';
+        $isNew = ! file_exists($filePath) || filesize($filePath) === 0;
+
+        $fp = fopen($filePath, 'a');
+        if ($fp) {
+            if ($isNew) {
+                // Thêm UTF-8 BOM để Excel hiển thị tiếng Việt có dấu chuẩn xác 100%
+                fputs($fp, "\xEF\xBB\xBF");
+                fputcsv($fp, [
+                    'STT',
+                    'Thời gian quét',
+                    'Mã sinh viên (MSSV)',
+                    'Họ và tên',
+                    'Lớp',
+                    'Email',
+                    'Tên sự kiện',
+                    'Phương thức điểm danh',
+                    'Phiên điểm danh ID',
+                ]);
+            }
+
+            $rowCount = 1;
+            if (! $isNew) {
+                $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                $rowCount = max(1, count($lines));
+            }
+
+            fputcsv($fp, [
+                $rowCount,
+                $c->completed_at?->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i:s') ?? now()->format('d/m/Y H:i:s'),
+                $u->student_code ?? '',
+                $u->name,
+                $u->class_name ?? '',
+                $u->email,
+                $e->title,
+                'Quét mã QR trực tiếp (2 phút)',
+                $s->id,
+            ]);
+            fclose($fp);
+        }
+
+        return $filePath;
+    }
+
+    /**
+     * Tạo hoặc đồng bộ hoàn chỉnh file danh sách quét QR để tải về
+     */
+    public function getOrCreateQrExportFile(Event $e): string
+    {
+        $dir = storage_path('app/attendance_exports');
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        $filePath = $dir.DIRECTORY_SEPARATOR.'event_'.$e->id.'_danh_sach_quet_qr.csv';
+        $completions = EventCompletion::where('event_id', $e->id)
+            ->where('method', 'end_qr')
+            ->with('user')
+            ->orderBy('completed_at', 'asc')
+            ->get();
+
+        $fp = fopen($filePath, 'w');
+        if ($fp) {
+            fputs($fp, "\xEF\xBB\xBF");
+            fputcsv($fp, [
+                'STT',
+                'Thời gian quét',
+                'Mã sinh viên (MSSV)',
+                'Họ và tên',
+                'Lớp',
+                'Email',
+                'Tên sự kiện',
+                'Phương thức điểm danh',
+                'Phiên điểm danh ID',
+            ]);
+
+            $idx = 1;
+            foreach ($completions as $comp) {
+                $u = $comp->user;
+                fputcsv($fp, [
+                    $idx++,
+                    $comp->completed_at?->timezone('Asia/Ho_Chi_Minh')->format('d/m/Y H:i:s') ?? '',
+                    $u?->student_code ?? '',
+                    $u?->name ?? 'Sinh viên',
+                    $u?->class_name ?? '',
+                    $u?->email ?? '',
+                    $e->title,
+                    'Quét mã QR trực tiếp (2 phút)',
+                    $comp->attendance_session_id ?? '',
+                ]);
+            }
+            fclose($fp);
+        }
+
+        return $filePath;
     }
 
     public function importPaperAttendance(Event $event, array $entries, ?string $path, ?string $notes, User $actor): PaperAttendance

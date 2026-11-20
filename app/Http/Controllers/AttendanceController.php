@@ -22,7 +22,31 @@ class AttendanceController extends Controller
     {
         $this->authorizeStaff($event, $r);
 
-        return view('attendance.scan', ['event' => $event, 'session' => $this->service->current($event), 'stats' => $this->service->reconcile($event)]);
+        $recentScans = \App\Models\EventCompletion::where('event_id', $event->id)
+            ->where('method', 'end_qr')
+            ->with('user')
+            ->latest('completed_at')
+            ->limit(100)
+            ->get();
+
+        return view('attendance.scan', [
+            'event' => $event,
+            'session' => $this->service->current($event),
+            'stats' => $this->service->reconcile($event),
+            'recentScans' => $recentScans,
+            'slotSeconds' => \App\Services\AttendanceService::slotDuration(),
+        ]);
+    }
+
+    public function exportQrFile(Event $event, Request $r)
+    {
+        $this->authorizeStaff($event, $r);
+        $filePath = $this->service->getOrCreateQrExportFile($event);
+        $filename = 'danh-sach-quet-qr-sukien-'.$event->id.'-'.date('Ymd_His').'.csv';
+
+        return response()->download($filePath, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function open(Event $event, Request $r)
@@ -52,7 +76,29 @@ class AttendanceController extends Controller
         // để tuyệt đối không lưu vết vào web server access logs, reverse proxy hoặc header Referer.
         $url = url('/events/'.$event->id.'/attendance/confirm').'#code='.$payload;
 
-        return response()->json(['active' => true, 'svg' => QrService::svg($url, 340), 'expires_at' => $s->expires_at->toIso8601String(), 'server_now' => now()->toIso8601String()])->withHeaders(['Cache-Control' => 'no-store, private', 'Referrer-Policy' => 'no-referrer']);
+        $scannedCompletions = \App\Models\EventCompletion::where('event_id', $event->id)
+            ->where('method', 'end_qr')
+            ->with('user')
+            ->latest('completed_at')
+            ->limit(15)
+            ->get();
+
+        $recentList = $scannedCompletions->map(fn ($c) => [
+            'time' => $c->completed_at?->timezone('Asia/Ho_Chi_Minh')->format('H:i:s') ?? '',
+            'student_code' => $c->user?->student_code ?? '',
+            'name' => $c->user?->name ?? 'Sinh viên',
+            'class_name' => $c->user?->class_name ?? '',
+        ]);
+
+        return response()->json([
+            'active' => true,
+            'svg' => QrService::svg($url, 340),
+            'expires_at' => $s->expires_at->toIso8601String(),
+            'server_now' => now()->toIso8601String(),
+            'slot_seconds' => \App\Services\AttendanceService::slotDuration(),
+            'scanned_count' => \App\Models\EventCompletion::where('event_id', $event->id)->where('method', 'end_qr')->count(),
+            'recent_scans' => $recentList,
+        ])->withHeaders(['Cache-Control' => 'no-store, private', 'Referrer-Policy' => 'no-referrer']);
     }
 
     public function confirm(Event $event, Request $request)

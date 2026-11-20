@@ -51,6 +51,7 @@ Route::middleware('active')->group(function () {
         Route::post('/events/{event}/attendance/open', [AttendanceController::class, 'open'])->middleware('throttle:10,1');
         Route::post('/events/{event}/attendance/close', [AttendanceController::class, 'close'])->middleware('throttle:10,1');
         Route::get('/events/{event}/attendance/qr', [AttendanceController::class, 'qr'])->middleware('throttle:90,1');
+        Route::get('/events/{event}/attendance/export-qr-csv', [AttendanceController::class, 'exportQrFile']);
         Route::get('/events/{event}/attendance/confirm', [AttendanceController::class, 'confirm']);
         Route::post('/events/{event}/attendance/complete', [AttendanceController::class, 'complete'])->middleware('throttle:end-attendance');
         Route::get('/attendance/paper/{paper}/file', [AttendanceController::class, 'paperFile']);
